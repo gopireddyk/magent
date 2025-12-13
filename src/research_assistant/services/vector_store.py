@@ -21,21 +21,32 @@ class VectorStore:
 
     def __init__(self):
         settings = get_settings()
+        self.chroma_host = settings.chroma_host
+        self.chroma_port = settings.chroma_port
         self.persist_dir = settings.chroma_persist_dir
         self.collection_name = settings.chroma_collection_name
-        self._client: chromadb.PersistentClient | None = None
+        self._client = None
         self._collection = None
         self._embedding_service = get_embedding_service()
 
     @property
-    def client(self) -> chromadb.PersistentClient:
-        """Lazy load the ChromaDB client."""
+    def client(self):
+        """Lazy load the ChromaDB client (HTTP or Persistent based on config)."""
         if self._client is None:
             try:
-                self._client = chromadb.PersistentClient(
-                    path=self.persist_dir,
-                    settings=ChromaSettings(anonymized_telemetry=False),
-                )
+                if self.chroma_host:
+                    # Use HTTP client for remote ChromaDB server
+                    self._client = chromadb.HttpClient(
+                        host=self.chroma_host,
+                        port=self.chroma_port,
+                        settings=ChromaSettings(anonymized_telemetry=False),
+                    )
+                else:
+                    # Use persistent client for local storage
+                    self._client = chromadb.PersistentClient(
+                        path=self.persist_dir,
+                        settings=ChromaSettings(anonymized_telemetry=False),
+                    )
             except Exception as e:
                 raise VectorStoreError(f"Failed to initialize ChromaDB: {e}")
         return self._client

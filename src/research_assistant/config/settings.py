@@ -29,9 +29,17 @@ class Settings(BaseSettings):
     )
 
     # ChromaDB settings
+    chroma_host: str | None = Field(
+        default=None,
+        description="ChromaDB server host (if using HTTP client)",
+    )
+    chroma_port: int = Field(
+        default=8000,
+        description="ChromaDB server port",
+    )
     chroma_persist_dir: str = Field(
         default="./data/vectorstore",
-        description="ChromaDB persistence directory",
+        description="ChromaDB persistence directory (for local mode)",
     )
     chroma_collection_name: str = Field(
         default="research_documents",
@@ -45,7 +53,7 @@ class Settings(BaseSettings):
 
     # Search settings
     search_top_k: int = Field(default=5, ge=1, le=20)
-    search_score_threshold: float = Field(default=0.5, ge=0.0, le=1.0)
+    search_score_threshold: float = Field(default=0.3, ge=0.0, le=1.0)
 
     # Agent settings
     max_iterations: int = Field(default=10, ge=1, le=50)
