@@ -1,0 +1,889 @@
+# ============================================================================
+# EXTERNAL DEPENDENCIES & PRE-REQUISITES DOCUMENT
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Complete list of ALL external dependencies, models, files, and
+#          pre-requisites needed to build and run this application
+# ============================================================================
+# This document ensures an AI agent or developer has EVERYTHING needed
+# to implement and deploy the project successfully.
+# ============================================================================
+
+# ============================================================================
+# OVERVIEW - DEPENDENCY CATEGORIES
+# ============================================================================
+overview:
+  description: |
+    This project requires external dependencies in the following categories:
+    1. Runtime Services - External services that must be running
+    2. AI Models - LLM and embedding models to download
+    3. Python Packages - PyPI packages to install
+    4. System Tools - OS-level tools and binaries
+    5. Container Infrastructure - For deployment
+    6. Sample Data - For testing and development
+
+  dependency_installation_order:
+    - step: 1
+      category: "System Tools"
+      description: "Install OS-level prerequisites (Python, Git, etc.)"
+    - step: 2
+      category: "Runtime Services"
+      description: "Install and start Ollama"
+    - step: 3
+      category: "AI Models"
+      description: "Download required LLM and embedding models"
+    - step: 4
+      category: "Python Environment"
+      description: "Create virtual environment and install packages"
+    - step: 5
+      category: "Container Infrastructure"
+      description: "Install Podman/Multipass for deployment (optional)"
+    - step: 6
+      category: "Verification"
+      description: "Verify all dependencies are working"
+
+# ============================================================================
+# 1. RUNTIME SERVICES
+# ============================================================================
+runtime_services:
+
+  ollama:
+    name: "Ollama"
+    description: "Local LLM inference server - REQUIRED for running the application"
+    version: ">=0.3.0"
+    required: true
+
+    installation:
+      macos:
+        method: "Homebrew or direct download"
+        commands:
+          - "brew install ollama"
+          - "# OR download from https://ollama.ai"
+      linux:
+        method: "Shell script"
+        commands:
+          - "curl -fsSL https://ollama.ai/install.sh | sh"
+      windows:
+        method: "Direct download"
+        commands:
+          - "# Download from https://ollama.ai/download/windows"
+
+    verification:
+      command: "ollama --version"
+      expected: "ollama version 0.x.x"
+      health_check: "curl http://localhost:11434/api/tags"
+
+    startup:
+      command: "ollama serve"
+      background: true
+      port: 11434
+      notes: "Ollama runs as a background service on macOS/Linux after installation"
+
+    environment_variable:
+      name: "RESEARCH_OLLAMA_BASE_URL"
+      default: "http://localhost:11434"
+      k8s_value: "http://ollama:11434"
+
+  chromadb_server:
+    name: "ChromaDB Server"
+    description: "Vector database server - OPTIONAL, can run embedded"
+    version: ">=0.4.0"
+    required: false
+
+    modes:
+      embedded:
+        description: "Runs within Python process (default for development)"
+        configuration:
+          persist_directory: "./data/vectorstore"
+          client_type: "PersistentClient"
+      server:
+        description: "Runs as separate service (recommended for production)"
+        port: 8000
+        docker_image: "chromadb/chroma:latest"
+
+    installation:
+      embedded: "Installed via pip with chromadb package"
+      server:
+        command: "podman run -d -p 8000:8000 chromadb/chroma:latest"
+
+    environment_variables:
+      - name: "RESEARCH_CHROMA_PERSIST_DIR"
+        default: "./data/vectorstore"
+        description: "Directory for embedded ChromaDB storage"
+      - name: "RESEARCH_CHROMA_HOST"
+        default: "localhost"
+        description: "ChromaDB server host (server mode only)"
+      - name: "RESEARCH_CHROMA_PORT"
+        default: "8000"
+        description: "ChromaDB server port (server mode only)"
+
+# ============================================================================
+# 2. AI MODELS - MUST DOWNLOAD BEFORE RUNNING
+# ============================================================================
+ai_models:
+
+  llm_models:
+    primary:
+      name: "llama3.2"
+      provider: "Ollama"
+      size: "~2GB"
+      description: "Primary LLM for agent reasoning and text generation"
+      required: true
+
+      download:
+        command: "ollama pull llama3.2"
+        time_estimate: "5-15 minutes depending on internet speed"
+
+      verification:
+        command: "ollama list"
+        expected: "llama3.2:latest"
+        test_command: "ollama run llama3.2 'Hello, respond with OK'"
+
+      configuration:
+        environment_variable: "RESEARCH_OLLAMA_MODEL"
+        temperature: 0.7
+        max_tokens: 2048
+
+    alternatives:
+      - name: "llama3.2:1b"
+        size: "~1.3GB"
+        description: "Lighter version, faster but less capable"
+        download: "ollama pull llama3.2:1b"
+        use_case: "Development/testing on limited hardware"
+
+      - name: "mistral"
+        size: "~4GB"
+        description: "Alternative model, good reasoning"
+        download: "ollama pull mistral"
+        use_case: "If llama3.2 doesn't work well"
+
+      - name: "codellama"
+        size: "~4GB"
+        description: "Code-focused model"
+        download: "ollama pull codellama"
+        use_case: "If analyzing code documents"
+
+      - name: "qwen2.5:7b"
+        size: "~4.5GB"
+        description: "Good multilingual support"
+        download: "ollama pull qwen2.5:7b"
+        use_case: "Non-English documents"
+
+  embedding_models:
+    primary:
+      name: "all-MiniLM-L6-v2"
+      provider: "HuggingFace / sentence-transformers"
+      size: "~90MB"
+      dimensions: 384
+      description: "Primary embedding model for vector search"
+      required: true
+
+      download:
+        method: "Auto-downloaded on first use"
+        location: "~/.cache/huggingface/hub/"
+        manual_command: |
+          python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+
+      verification:
+        command: |
+          python -c "from sentence_transformers import SentenceTransformer; m = SentenceTransformer('all-MiniLM-L6-v2'); print('OK:', m.get_sentence_embedding_dimension())"
+        expected: "OK: 384"
+
+      configuration:
+        environment_variable: "RESEARCH_EMBEDDING_MODEL"
+        device: "cpu"  # or "cuda" for GPU
+
+    alternatives:
+      - name: "all-mpnet-base-v2"
+        size: "~420MB"
+        dimensions: 768
+        description: "Higher quality embeddings, but larger"
+        download: "Auto-downloaded on first use"
+        use_case: "Better accuracy needed"
+
+      - name: "nomic-embed-text"
+        provider: "Ollama"
+        size: "~274MB"
+        dimensions: 768
+        description: "Runs via Ollama, good integration"
+        download: "ollama pull nomic-embed-text"
+        use_case: "Want to use Ollama for everything"
+
+      - name: "mxbai-embed-large"
+        provider: "Ollama"
+        size: "~670MB"
+        dimensions: 1024
+        description: "High quality Ollama embedding"
+        download: "ollama pull mxbai-embed-large"
+        use_case: "Best quality via Ollama"
+
+# ============================================================================
+# 3. PYTHON PACKAGES
+# ============================================================================
+python_packages:
+
+  python_version:
+    minimum: "3.10"
+    recommended: "3.11"
+    maximum: "3.12"
+    verification: "python --version"
+
+  installation_methods:
+    recommended:
+      method: "pip with pyproject.toml"
+      command: "pip install -e ."
+      dev_command: "pip install -e '.[dev]'"
+    alternative:
+      method: "pip with requirements file"
+      command: "pip install -r requirements.txt"
+
+  core_dependencies:
+    llm_framework:
+      - package: "langchain"
+        version: ">=0.3.0"
+        description: "Core LLM application framework"
+        pypi: "https://pypi.org/project/langchain/"
+
+      - package: "langchain-community"
+        version: ">=0.3.0"
+        description: "Community integrations"
+        pypi: "https://pypi.org/project/langchain-community/"
+
+      - package: "langchain-core"
+        version: ">=0.3.0"
+        description: "Core abstractions"
+        pypi: "https://pypi.org/project/langchain-core/"
+
+      - package: "langchain-text-splitters"
+        version: ">=0.3.0"
+        description: "Document chunking utilities"
+        pypi: "https://pypi.org/project/langchain-text-splitters/"
+
+    agent_orchestration:
+      - package: "langgraph"
+        version: ">=0.2.0"
+        description: "Multi-agent workflow orchestration"
+        pypi: "https://pypi.org/project/langgraph/"
+        documentation: "https://langchain-ai.github.io/langgraph/"
+
+    llm_provider:
+      - package: "langchain-ollama"
+        version: ">=0.2.0"
+        description: "Ollama integration for LangChain"
+        pypi: "https://pypi.org/project/langchain-ollama/"
+
+      - package: "ollama"
+        version: ">=0.3.0"
+        description: "Ollama Python client"
+        pypi: "https://pypi.org/project/ollama/"
+
+    vector_database:
+      - package: "chromadb"
+        version: ">=0.4.0"
+        description: "Vector database"
+        pypi: "https://pypi.org/project/chromadb/"
+        documentation: "https://docs.trychroma.com/"
+
+    embeddings:
+      - package: "sentence-transformers"
+        version: ">=2.2.0"
+        description: "Local embedding models"
+        pypi: "https://pypi.org/project/sentence-transformers/"
+        note: "This package downloads models on first use (~90MB for default model)"
+
+    document_processing:
+      - package: "pypdf"
+        version: ">=4.0.0"
+        description: "PDF text extraction"
+        pypi: "https://pypi.org/project/pypdf/"
+
+      - package: "python-docx"
+        version: ">=1.0.0"
+        description: "Word document support"
+        pypi: "https://pypi.org/project/python-docx/"
+        optional: true
+
+      - package: "unstructured"
+        version: ">=0.10.0"
+        description: "Advanced document parsing"
+        pypi: "https://pypi.org/project/unstructured/"
+        optional: true
+        note: "Large package with many dependencies"
+
+    user_interface:
+      - package: "streamlit"
+        version: ">=1.28.0"
+        description: "Web UI framework"
+        pypi: "https://pypi.org/project/streamlit/"
+        documentation: "https://docs.streamlit.io/"
+
+    configuration:
+      - package: "pydantic"
+        version: ">=2.0.0"
+        description: "Data validation"
+        pypi: "https://pypi.org/project/pydantic/"
+
+      - package: "pydantic-settings"
+        version: ">=2.0.0"
+        description: "Settings management"
+        pypi: "https://pypi.org/project/pydantic-settings/"
+
+      - package: "python-dotenv"
+        version: ">=1.0.0"
+        description: "Environment variable loading"
+        pypi: "https://pypi.org/project/python-dotenv/"
+
+      - package: "pyyaml"
+        version: ">=6.0.0"
+        description: "YAML configuration"
+        pypi: "https://pypi.org/project/pyyaml/"
+
+    async_support:
+      - package: "aiofiles"
+        version: ">=23.0.0"
+        description: "Async file operations"
+        pypi: "https://pypi.org/project/aiofiles/"
+
+      - package: "httpx"
+        version: ">=0.25.0"
+        description: "Async HTTP client"
+        pypi: "https://pypi.org/project/httpx/"
+
+    utilities:
+      - package: "rich"
+        version: ">=13.0.0"
+        description: "Rich terminal output"
+        pypi: "https://pypi.org/project/rich/"
+
+      - package: "tenacity"
+        version: ">=8.0.0"
+        description: "Retry logic"
+        pypi: "https://pypi.org/project/tenacity/"
+
+      - package: "structlog"
+        version: ">=23.0.0"
+        description: "Structured logging"
+        pypi: "https://pypi.org/project/structlog/"
+
+  development_dependencies:
+    testing:
+      - package: "pytest"
+        version: ">=7.4.0"
+        description: "Testing framework"
+      - package: "pytest-asyncio"
+        version: ">=0.21.0"
+        description: "Async test support"
+      - package: "pytest-cov"
+        version: ">=4.1.0"
+        description: "Coverage reporting"
+      - package: "pytest-mock"
+        version: ">=3.12.0"
+        description: "Mocking support"
+
+    code_quality:
+      - package: "black"
+        version: ">=24.0.0"
+        description: "Code formatter"
+      - package: "ruff"
+        version: ">=0.1.0"
+        description: "Fast linter"
+      - package: "mypy"
+        version: ">=1.7.0"
+        description: "Type checker"
+      - package: "pre-commit"
+        version: ">=3.6.0"
+        description: "Git hooks"
+
+# ============================================================================
+# 4. SYSTEM TOOLS
+# ============================================================================
+system_tools:
+
+  required:
+    python:
+      name: "Python"
+      version: ">=3.10"
+      installation:
+        macos: "brew install python@3.11"
+        linux: "sudo apt-get install python3.11 python3.11-venv"
+        windows: "winget install Python.Python.3.11"
+      verification: "python3 --version"
+
+    pip:
+      name: "pip"
+      version: ">=23.0"
+      installation: "python -m pip install --upgrade pip"
+      verification: "pip --version"
+
+    git:
+      name: "Git"
+      version: ">=2.30"
+      installation:
+        macos: "brew install git"
+        linux: "sudo apt-get install git"
+        windows: "winget install Git.Git"
+      verification: "git --version"
+
+    curl:
+      name: "curl"
+      description: "Required for health checks and API testing"
+      installation:
+        macos: "Built-in"
+        linux: "sudo apt-get install curl"
+        windows: "Built-in on Windows 10+"
+      verification: "curl --version"
+
+  optional_for_development:
+    make:
+      name: "GNU Make"
+      description: "For running Makefile commands"
+      installation:
+        macos: "Built-in or brew install make"
+        linux: "sudo apt-get install make"
+        windows: "choco install make"
+      verification: "make --version"
+
+    jq:
+      name: "jq"
+      description: "JSON processing for scripts"
+      installation:
+        macos: "brew install jq"
+        linux: "sudo apt-get install jq"
+        windows: "choco install jq"
+      verification: "jq --version"
+
+  for_deployment:
+    podman:
+      name: "Podman"
+      version: ">=4.0"
+      description: "Container runtime (Docker alternative)"
+      installation:
+        macos: "brew install podman"
+        linux: "sudo apt-get install podman"
+        windows: "winget install RedHat.Podman"
+      verification: "podman --version"
+      documentation: "https://podman.io/docs"
+
+    multipass:
+      name: "Multipass"
+      version: ">=1.12"
+      description: "VM management for local Kubernetes"
+      installation:
+        macos: "brew install multipass"
+        linux: "sudo snap install multipass"
+        windows: "winget install Canonical.Multipass"
+      verification: "multipass --version"
+      documentation: "https://multipass.run/docs"
+
+    kubectl:
+      name: "kubectl"
+      version: ">=1.28"
+      description: "Kubernetes CLI"
+      installation:
+        macos: "brew install kubectl"
+        linux: "sudo snap install kubectl --classic"
+        windows: "winget install Kubernetes.kubectl"
+      verification: "kubectl version --client"
+
+    helm:
+      name: "Helm"
+      version: ">=3.12"
+      description: "Kubernetes package manager (optional)"
+      installation:
+        macos: "brew install helm"
+        linux: "sudo snap install helm --classic"
+        windows: "choco install kubernetes-helm"
+      verification: "helm version"
+
+# ============================================================================
+# 5. CONTAINER IMAGES
+# ============================================================================
+container_images:
+
+  base_images:
+    python:
+      name: "python:3.11-slim"
+      source: "docker.io/library/python:3.11-slim"
+      size: "~150MB"
+      used_for: "Application container"
+
+    ollama:
+      name: "ollama/ollama:latest"
+      source: "docker.io/ollama/ollama:latest"
+      size: "~1GB"
+      used_for: "LLM inference"
+
+    chromadb:
+      name: "chromadb/chroma:latest"
+      source: "docker.io/chromadb/chroma:latest"
+      size: "~500MB"
+      used_for: "Vector database"
+
+    curl:
+      name: "curlimages/curl:latest"
+      source: "docker.io/curlimages/curl:latest"
+      size: "~20MB"
+      used_for: "Model initialization"
+
+  pre_pull_commands:
+    podman:
+      - "podman pull docker.io/library/python:3.11-slim"
+      - "podman pull docker.io/ollama/ollama:latest"
+      - "podman pull docker.io/chromadb/chroma:latest"
+      - "podman pull docker.io/curlimages/curl:latest"
+
+# ============================================================================
+# 6. DIRECTORIES & FILES TO CREATE
+# ============================================================================
+directories_and_files:
+
+  data_directories:
+    - path: "data/"
+      description: "Root data directory"
+    - path: "data/documents/"
+      description: "Uploaded PDF/text documents"
+      gitkeep: true
+    - path: "data/vectorstore/"
+      description: "ChromaDB persistent storage"
+      gitkeep: true
+
+  config_files:
+    - path: ".env"
+      description: "Environment configuration (copy from .env.example)"
+      create_from: ".env.example"
+      required: true
+    - path: ".streamlit/config.toml"
+      description: "Streamlit UI configuration"
+      required: false
+      content: |
+        [server]
+        port = 8501
+        address = "0.0.0.0"
+        headless = true
+
+        [theme]
+        primaryColor = "#1f77b4"
+        backgroundColor = "#ffffff"
+        secondaryBackgroundColor = "#f0f2f6"
+        textColor = "#262730"
+
+  cache_directories:
+    - path: "~/.cache/huggingface/"
+      description: "HuggingFace model cache (auto-created)"
+      size_estimate: "100MB - 1GB depending on models"
+    - path: "~/.ollama/"
+      description: "Ollama model storage"
+      size_estimate: "2GB - 10GB depending on models"
+
+# ============================================================================
+# 7. NETWORK REQUIREMENTS
+# ============================================================================
+network_requirements:
+
+  internet_access:
+    required_for:
+      - "Downloading Ollama models (one-time)"
+      - "Downloading HuggingFace embedding models (one-time)"
+      - "Installing Python packages (one-time)"
+      - "Pulling container images (one-time)"
+
+    not_required_for:
+      - "Running the application after setup"
+      - "All LLM inference (runs locally)"
+      - "Document processing (runs locally)"
+      - "Vector search (runs locally)"
+
+  ports:
+    application:
+      port: 8501
+      service: "Streamlit UI"
+      protocol: "HTTP"
+
+    ollama:
+      port: 11434
+      service: "Ollama LLM API"
+      protocol: "HTTP"
+
+    chromadb:
+      port: 8000
+      service: "ChromaDB API (if server mode)"
+      protocol: "HTTP"
+
+  firewall_rules:
+    development:
+      - "Allow localhost:8501 (Streamlit)"
+      - "Allow localhost:11434 (Ollama)"
+      - "Allow localhost:8000 (ChromaDB, if server mode)"
+
+    kubernetes:
+      - "Allow ingress to port 8501"
+      - "Internal: Allow pod-to-pod communication"
+
+# ============================================================================
+# 8. SAMPLE DATA FOR TESTING
+# ============================================================================
+sample_data:
+
+  test_documents:
+    description: "Sample PDF documents for testing the application"
+
+    recommended_sources:
+      - name: "arXiv papers"
+        url: "https://arxiv.org/"
+        description: "Free academic papers in PDF format"
+        suggestion: "Download 2-3 papers on a topic you're interested in"
+
+      - name: "Public domain books"
+        url: "https://www.gutenberg.org/"
+        description: "Free public domain ebooks"
+        suggestion: "Download PDF versions of classic texts"
+
+      - name: "Government reports"
+        url: "https://www.gao.gov/reports-testimonies"
+        description: "Public government reports"
+        suggestion: "Good for testing factual Q&A"
+
+    create_test_pdf:
+      description: "Create a simple test PDF for quick testing"
+      method: |
+        # Create a simple test document using Python
+        python -c "
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+
+        c = canvas.Canvas('data/documents/test_document.pdf', pagesize=letter)
+        c.drawString(100, 750, 'Test Document for Research Assistant')
+        c.drawString(100, 700, 'This is a sample paragraph about machine learning.')
+        c.drawString(100, 650, 'Machine learning is a subset of artificial intelligence.')
+        c.drawString(100, 600, 'It enables computers to learn from data.')
+        c.save()
+        print('Test document created!')
+        "
+      note: "Requires reportlab package: pip install reportlab"
+
+  test_questions:
+    description: "Sample questions for testing after document upload"
+    examples:
+      - "What is the main topic of the uploaded documents?"
+      - "Summarize the key findings mentioned in the papers."
+      - "What methodology was used in the research?"
+      - "Are there any conflicting viewpoints in the documents?"
+      - "What are the limitations mentioned by the authors?"
+
+# ============================================================================
+# 9. HARDWARE REQUIREMENTS
+# ============================================================================
+hardware_requirements:
+
+  minimum:
+    cpu: "4 cores"
+    ram: "8GB"
+    storage: "20GB available"
+    gpu: "Not required"
+    notes: "Will be slow for LLM inference"
+
+  recommended:
+    cpu: "8 cores"
+    ram: "16GB"
+    storage: "50GB available"
+    gpu: "NVIDIA GPU with 6GB+ VRAM (optional)"
+    notes: "Smooth experience for development"
+
+  production:
+    cpu: "8+ cores"
+    ram: "32GB"
+    storage: "100GB+ SSD"
+    gpu: "NVIDIA GPU with 8GB+ VRAM (recommended)"
+    notes: "For serving multiple users"
+
+  gpu_support:
+    nvidia:
+      requirement: "CUDA 11.8+ drivers"
+      ollama_setup: "Ollama auto-detects NVIDIA GPUs"
+      verification: "nvidia-smi"
+
+    apple_silicon:
+      requirement: "macOS 12+ on M1/M2/M3"
+      ollama_setup: "Ollama auto-uses Metal acceleration"
+      verification: "system_profiler SPDisplaysDataType"
+
+    cpu_only:
+      note: "Application works without GPU, just slower"
+      recommended_model: "llama3.2:1b for faster inference"
+
+# ============================================================================
+# 10. VERIFICATION CHECKLIST
+# ============================================================================
+verification_checklist:
+
+  pre_implementation:
+    - step: "Python version"
+      command: "python3 --version"
+      expected: "Python 3.10, 3.11, or 3.12"
+
+    - step: "Ollama installed"
+      command: "ollama --version"
+      expected: "ollama version X.X.X"
+
+    - step: "Ollama running"
+      command: "curl http://localhost:11434/api/tags"
+      expected: "JSON response with models list"
+
+    - step: "LLM model downloaded"
+      command: "ollama list | grep llama3.2"
+      expected: "llama3.2:latest"
+
+    - step: "LLM model works"
+      command: "ollama run llama3.2 'Say OK'"
+      expected: "OK or similar response"
+
+  post_implementation:
+    - step: "Python packages installed"
+      command: "pip list | grep langchain"
+      expected: "langchain packages listed"
+
+    - step: "Embedding model works"
+      command: |
+        python -c "from sentence_transformers import SentenceTransformer; m = SentenceTransformer('all-MiniLM-L6-v2'); print(m.encode('test').shape)"
+      expected: "(384,)"
+
+    - step: "ChromaDB works"
+      command: |
+        python -c "import chromadb; c = chromadb.Client(); print('OK')"
+      expected: "OK"
+
+    - step: "Streamlit works"
+      command: "streamlit hello"
+      expected: "Opens Streamlit demo in browser"
+
+    - step: "Application starts"
+      command: "make run"
+      expected: "Streamlit app starts on port 8501"
+
+  for_deployment:
+    - step: "Podman installed"
+      command: "podman --version"
+      expected: "podman version X.X.X"
+
+    - step: "Multipass installed"
+      command: "multipass --version"
+      expected: "multipass X.X.X"
+
+    - step: "kubectl installed"
+      command: "kubectl version --client"
+      expected: "Client Version: vX.X.X"
+
+# ============================================================================
+# 11. COMMON ISSUES & SOLUTIONS
+# ============================================================================
+common_issues:
+
+  ollama_not_running:
+    symptom: "Connection refused to localhost:11434"
+    solution:
+      - "Start Ollama: ollama serve"
+      - "Or restart Ollama service: systemctl restart ollama"
+      - "Check if another process uses port 11434"
+
+  model_not_found:
+    symptom: "Model 'llama3.2' not found"
+    solution:
+      - "Download the model: ollama pull llama3.2"
+      - "Wait for download to complete"
+      - "Verify with: ollama list"
+
+  embedding_model_download_fails:
+    symptom: "HTTPSConnectionPool error when loading embedding model"
+    solution:
+      - "Check internet connection"
+      - "Try manual download: python -c \"from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')\""
+      - "Set HF_HOME if custom cache dir needed"
+
+  chromadb_permission_error:
+    symptom: "Permission denied for data/vectorstore"
+    solution:
+      - "Create directory: mkdir -p data/vectorstore"
+      - "Fix permissions: chmod 755 data/vectorstore"
+      - "Check disk space"
+
+  out_of_memory:
+    symptom: "OOM error when running LLM"
+    solution:
+      - "Use smaller model: RESEARCH_OLLAMA_MODEL=llama3.2:1b"
+      - "Close other applications"
+      - "Increase swap space"
+      - "Use CPU-only mode for embeddings"
+
+  slow_inference:
+    symptom: "LLM responses take very long"
+    solution:
+      - "Enable GPU if available"
+      - "Use smaller model: llama3.2:1b"
+      - "Reduce max_tokens setting"
+      - "Check system resource usage"
+
+  port_already_in_use:
+    symptom: "Port 8501 already in use"
+    solution:
+      - "Find process: lsof -i :8501"
+      - "Kill process: kill -9 <PID>"
+      - "Or use different port: streamlit run app.py --server.port 8502"
+
+# ============================================================================
+# 12. QUICK START COMMANDS
+# ============================================================================
+quick_start:
+
+  one_time_setup:
+    description: "Run these commands once to set up the environment"
+    commands:
+      - "# 1. Install Ollama"
+      - "curl -fsSL https://ollama.ai/install.sh | sh"
+      - ""
+      - "# 2. Download LLM model"
+      - "ollama pull llama3.2"
+      - ""
+      - "# 3. Clone repository"
+      - "git clone <repository-url>"
+      - "cd student-research-assistant"
+      - ""
+      - "# 4. Create virtual environment"
+      - "python -m venv venv"
+      - "source venv/bin/activate  # Linux/macOS"
+      - "# OR: .\\venv\\Scripts\\activate  # Windows"
+      - ""
+      - "# 5. Install dependencies"
+      - "pip install -e '.[dev]'"
+      - ""
+      - "# 6. Copy environment file"
+      - "cp .env.example .env"
+      - ""
+      - "# 7. Create data directories"
+      - "mkdir -p data/documents data/vectorstore"
+
+  daily_usage:
+    description: "Commands for daily development"
+    commands:
+      - "# Activate environment"
+      - "source venv/bin/activate"
+      - ""
+      - "# Start Ollama (if not running)"
+      - "ollama serve &"
+      - ""
+      - "# Run the application"
+      - "make run"
+      - "# OR: streamlit run src/research_assistant/ui/app.py"
+
+  makefile_shortcuts:
+    description: "Use Makefile for common operations"
+    commands:
+      - "make install      # Install dependencies"
+      - "make run          # Run the application"
+      - "make test         # Run tests"
+      - "make lint         # Run linters"
+      - "make ollama-pull  # Download LLM models"
+      - "make verify-deps  # Verify all dependencies"
+
+# ============================================================================
+# END OF EXTERNAL DEPENDENCIES DOCUMENT
+# ============================================================================

@@ -545,3 +545,126 @@ release: clean lint test podman-build ## Prepare release
 	@echo "  2. Update CHANGELOG.md"
 	@echo "  3. Create git tag"
 	@echo "  4. Push to registry: make podman-push"
+
+# ============================================================================
+# DEPENDENCY VERIFICATION
+# ============================================================================
+
+##@ Dependency Verification
+
+.PHONY: verify-all
+verify-all: ## Verify all dependencies are ready
+	@echo "$(BLUE)Verifying all dependencies...$(NC)"
+	@echo ""
+	@$(MAKE) verify-python
+	@$(MAKE) verify-ollama
+	@$(MAKE) verify-models
+	@$(MAKE) verify-packages
+	@echo ""
+	@echo "$(GREEN)========================================$(NC)"
+	@echo "$(GREEN)  All dependencies verified!$(NC)"
+	@echo "$(GREEN)========================================$(NC)"
+
+.PHONY: verify-python
+verify-python: ## Verify Python installation
+	@echo "$(BLUE)[1/4] Checking Python...$(NC)"
+	@python3 --version || (echo "$(RED)Python 3 not found!$(NC)" && exit 1)
+	@pip --version || (echo "$(RED)pip not found!$(NC)" && exit 1)
+	@echo "$(GREEN)  ✓ Python OK$(NC)"
+
+.PHONY: verify-ollama
+verify-ollama: ## Verify Ollama is running
+	@echo "$(BLUE)[2/4] Checking Ollama...$(NC)"
+	@ollama --version || (echo "$(RED)Ollama not installed!$(NC)" && echo "Install: curl -fsSL https://ollama.ai/install.sh | sh" && exit 1)
+	@curl -s http://localhost:11434/api/tags > /dev/null 2>&1 || (echo "$(RED)Ollama not running!$(NC)" && echo "Start with: ollama serve" && exit 1)
+	@echo "$(GREEN)  ✓ Ollama OK$(NC)"
+
+.PHONY: verify-models
+verify-models: ## Verify AI models are downloaded
+	@echo "$(BLUE)[3/4] Checking AI models...$(NC)"
+	@ollama list | grep -q "llama3.2" || (echo "$(YELLOW)  ! llama3.2 not found$(NC)" && echo "  Download with: ollama pull llama3.2")
+	@ollama list | grep -q "llama3.2" && echo "$(GREEN)  ✓ llama3.2 model OK$(NC)" || true
+	@echo "$(BLUE)  Checking embedding model...$(NC)"
+	@python3 -c "from sentence_transformers import SentenceTransformer; m = SentenceTransformer('all-MiniLM-L6-v2'); print('$(GREEN)  ✓ Embedding model OK$(NC)')" 2>/dev/null || \
+		echo "$(YELLOW)  ! Embedding model will download on first use$(NC)"
+
+.PHONY: verify-packages
+verify-packages: ## Verify Python packages are installed
+	@echo "$(BLUE)[4/4] Checking Python packages...$(NC)"
+	@python3 -c "import langchain" 2>/dev/null && echo "$(GREEN)  ✓ langchain$(NC)" || echo "$(RED)  ✗ langchain missing$(NC)"
+	@python3 -c "import langgraph" 2>/dev/null && echo "$(GREEN)  ✓ langgraph$(NC)" || echo "$(RED)  ✗ langgraph missing$(NC)"
+	@python3 -c "import chromadb" 2>/dev/null && echo "$(GREEN)  ✓ chromadb$(NC)" || echo "$(RED)  ✗ chromadb missing$(NC)"
+	@python3 -c "import streamlit" 2>/dev/null && echo "$(GREEN)  ✓ streamlit$(NC)" || echo "$(RED)  ✗ streamlit missing$(NC)"
+	@python3 -c "import sentence_transformers" 2>/dev/null && echo "$(GREEN)  ✓ sentence-transformers$(NC)" || echo "$(RED)  ✗ sentence-transformers missing$(NC)"
+	@python3 -c "import ollama" 2>/dev/null && echo "$(GREEN)  ✓ ollama$(NC)" || echo "$(RED)  ✗ ollama missing$(NC)"
+
+.PHONY: verify-deployment
+verify-deployment: ## Verify deployment dependencies
+	@echo "$(BLUE)Checking deployment dependencies...$(NC)"
+	@echo ""
+	@echo "$(BLUE)Podman:$(NC)"
+	@podman --version 2>/dev/null && echo "$(GREEN)  ✓ Podman installed$(NC)" || echo "$(RED)  ✗ Podman not found$(NC)"
+	@echo ""
+	@echo "$(BLUE)Multipass:$(NC)"
+	@multipass --version 2>/dev/null && echo "$(GREEN)  ✓ Multipass installed$(NC)" || echo "$(RED)  ✗ Multipass not found$(NC)"
+	@echo ""
+	@echo "$(BLUE)kubectl:$(NC)"
+	@kubectl version --client 2>/dev/null && echo "$(GREEN)  ✓ kubectl installed$(NC)" || echo "$(RED)  ✗ kubectl not found$(NC)"
+
+.PHONY: check-ollama-models
+check-ollama-models: ## List downloaded Ollama models
+	@echo "$(BLUE)Downloaded Ollama models:$(NC)"
+	@ollama list 2>/dev/null || echo "$(RED)Ollama not running$(NC)"
+
+.PHONY: download-models
+download-models: ## Download all required AI models
+	@echo "$(BLUE)Downloading required models...$(NC)"
+	@echo ""
+	@echo "$(BLUE)1. Downloading llama3.2 (~2GB)...$(NC)"
+	@ollama pull llama3.2
+	@echo ""
+	@echo "$(BLUE)2. Pre-caching embedding model (~90MB)...$(NC)"
+	@python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2'); print('Downloaded!')"
+	@echo ""
+	@echo "$(GREEN)All models downloaded!$(NC)"
+
+.PHONY: download-models-minimal
+download-models-minimal: ## Download minimal models (for limited hardware)
+	@echo "$(BLUE)Downloading minimal models...$(NC)"
+	@echo ""
+	@echo "$(BLUE)1. Downloading llama3.2:1b (~1.3GB)...$(NC)"
+	@ollama pull llama3.2:1b
+	@echo ""
+	@echo "$(BLUE)2. Pre-caching embedding model (~90MB)...$(NC)"
+	@python3 -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2'); print('Downloaded!')"
+	@echo ""
+	@echo "$(GREEN)Minimal models downloaded!$(NC)"
+	@echo "$(YELLOW)Note: Set RESEARCH_OLLAMA_MODEL=llama3.2:1b in .env$(NC)"
+
+.PHONY: system-info
+system-info: ## Show system information for debugging
+	@echo "$(BLUE)System Information$(NC)"
+	@echo "=================="
+	@echo ""
+	@echo "$(BLUE)Operating System:$(NC)"
+	@uname -a
+	@echo ""
+	@echo "$(BLUE)Python:$(NC)"
+	@python3 --version
+	@which python3
+	@echo ""
+	@echo "$(BLUE)Memory:$(NC)"
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		sysctl hw.memsize | awk '{print $$2/1024/1024/1024 " GB"}'; \
+	else \
+		free -h | grep Mem; \
+	fi
+	@echo ""
+	@echo "$(BLUE)Disk Space:$(NC)"
+	@df -h . | tail -1
+	@echo ""
+	@echo "$(BLUE)GPU (if available):$(NC)"
+	@nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo "No NVIDIA GPU detected"
+	@if [[ "$$OSTYPE" == "darwin"* ]]; then \
+		system_profiler SPDisplaysDataType 2>/dev/null | grep "Chipset Model" || true; \
+	fi
