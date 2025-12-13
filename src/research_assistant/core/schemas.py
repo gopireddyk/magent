@@ -16,6 +16,28 @@ class DocumentMetadata(BaseModel):
     total_pages: int | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
+    def model_dump_for_vectorstore(self) -> dict[str, Any]:
+        """Serialize metadata for vector store compatibility.
+
+        ChromaDB only accepts str, int, float, bool values (NOT None).
+        This method flattens nested structures and excludes None values.
+        """
+        data = {}
+        data["source"] = self.source
+        data["filename"] = self.filename
+        data["file_type"] = self.file_type
+        if self.created_at:
+            data["created_at"] = self.created_at.isoformat()
+        if self.page_number is not None:
+            data["page_number"] = self.page_number
+        if self.total_pages is not None:
+            data["total_pages"] = self.total_pages
+        # Flatten extra dict - only include simple scalar values (no None)
+        for key, value in self.extra.items():
+            if isinstance(value, (str, int, float, bool)):
+                data[f"extra_{key}"] = value
+        return data
+
     def model_dump(self, **kwargs) -> dict[str, Any]:
         """Serialize metadata with ISO datetimes for vector store compatibility."""
         data = super().model_dump(**kwargs)

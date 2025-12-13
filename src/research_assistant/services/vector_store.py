@@ -126,23 +126,33 @@ class VectorStore:
 
     @staticmethod
     def _serialize_metadata(metadata: DocumentMetadata) -> dict[str, Any]:
-        """Prepare metadata for ChromaDB (datetime -> isoformat)."""
-        serialized = metadata.model_dump()
-        for key, value in list(serialized.items()):
-            if isinstance(value, datetime):
-                serialized[key] = value.isoformat()
-        return serialized
+        """Prepare metadata for ChromaDB.
+
+        ChromaDB only accepts str, int, float, bool, or None values.
+        Uses the dedicated vectorstore serialization method.
+        """
+        return metadata.model_dump_for_vectorstore()
 
     @staticmethod
     def _deserialize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
         """Convert stored metadata back to types expected by schemas."""
-        if "created_at" in metadata and isinstance(metadata["created_at"], str):
-            try:
-                metadata["created_at"] = datetime.fromisoformat(metadata["created_at"])
-            except ValueError:
-                # Leave as-is; pydantic will attempt parsing
-                pass
-        return metadata
+        result = {}
+        extra = {}
+
+        for key, value in metadata.items():
+            if key.startswith("extra_"):
+                # Reconstruct extra dict from flattened keys
+                extra[key[6:]] = value  # Remove 'extra_' prefix
+            elif key == "created_at" and isinstance(value, str):
+                try:
+                    result[key] = datetime.fromisoformat(value)
+                except ValueError:
+                    result[key] = value
+            else:
+                result[key] = value
+
+        result["extra"] = extra
+        return result
 
 
 @lru_cache
