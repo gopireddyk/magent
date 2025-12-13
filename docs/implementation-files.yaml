@@ -1,0 +1,787 @@
+# ============================================================================
+# IMPLEMENTATION FILES - COMPLETE CODE TEMPLATES
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Exact file contents for ALL missing files
+# ============================================================================
+# This document contains the COMPLETE code for every missing file.
+# An AI agent can copy these directly to create the full project.
+# ============================================================================
+
+# ============================================================================
+# CONFIGURATION FILES
+# ============================================================================
+
+streamlit_config:
+  file: ".streamlit/config.toml"
+  content: |
+    # Streamlit Configuration
+    # See: https://docs.streamlit.io/library/advanced-features/configuration
+
+    [server]
+    port = 8501
+    address = "0.0.0.0"
+    headless = true
+    runOnSave = true
+    maxUploadSize = 50
+
+    [browser]
+    gatherUsageStats = false
+    serverAddress = "localhost"
+    serverPort = 8501
+
+    [theme]
+    primaryColor = "#1f77b4"
+    backgroundColor = "#ffffff"
+    secondaryBackgroundColor = "#f0f2f6"
+    textColor = "#262730"
+    font = "sans serif"
+
+    [client]
+    showErrorDetails = true
+    toolbarMode = "minimal"
+
+pre_commit_config:
+  file: ".pre-commit-config.yaml"
+  content: |
+    # Pre-commit hooks configuration
+    # Install: pre-commit install
+    # Run: pre-commit run --all-files
+
+    repos:
+      # General hooks
+      - repo: https://github.com/pre-commit/pre-commit-hooks
+        rev: v4.5.0
+        hooks:
+          - id: trailing-whitespace
+          - id: end-of-file-fixer
+          - id: check-yaml
+            args: [--unsafe]
+          - id: check-json
+          - id: check-added-large-files
+            args: ['--maxkb=1000']
+          - id: check-merge-conflict
+          - id: detect-private-key
+
+      # Python code formatting
+      - repo: https://github.com/psf/black
+        rev: 24.1.0
+        hooks:
+          - id: black
+            language_version: python3.11
+
+      # Python linting
+      - repo: https://github.com/astral-sh/ruff-pre-commit
+        rev: v0.1.9
+        hooks:
+          - id: ruff
+            args: [--fix, --exit-non-zero-on-fix]
+
+      # Type checking
+      - repo: https://github.com/pre-commit/mirrors-mypy
+        rev: v1.8.0
+        hooks:
+          - id: mypy
+            additional_dependencies:
+              - pydantic>=2.0
+              - types-PyYAML
+
+      # Security checks
+      - repo: https://github.com/PyCQA/bandit
+        rev: 1.7.7
+        hooks:
+          - id: bandit
+            args: [-r, src/, -ll]
+            exclude: tests/
+
+# ============================================================================
+# SCRIPTS
+# ============================================================================
+
+seed_data_script:
+  file: "scripts/seed_data.py"
+  content: |
+    #!/usr/bin/env python3
+    """
+    Seed Data Script - Creates sample documents for testing.
+
+    Usage:
+        python scripts/seed_data.py
+        # OR
+        make seed-data
+    """
+
+    import os
+    from pathlib import Path
+
+    # Sample documents content
+    SAMPLE_DOCUMENTS = {
+        "machine_learning_intro.txt": """
+    Introduction to Machine Learning
+
+    Machine learning is a subset of artificial intelligence (AI) that enables
+    systems to learn and improve from experience without being explicitly programmed.
+    It focuses on developing computer programs that can access data and use it to
+    learn for themselves.
+
+    Types of Machine Learning:
+
+    1. Supervised Learning
+    In supervised learning, the algorithm learns from labeled training data.
+    The model makes predictions based on input-output pairs provided during training.
+    Common algorithms include linear regression, decision trees, and neural networks.
+
+    2. Unsupervised Learning
+    Unsupervised learning works with unlabeled data. The algorithm tries to find
+    patterns and relationships in the data without prior knowledge of outcomes.
+    Clustering and dimensionality reduction are common unsupervised techniques.
+
+    3. Reinforcement Learning
+    Reinforcement learning involves an agent learning to make decisions by
+    interacting with an environment. The agent receives rewards or penalties
+    based on its actions and learns to maximize cumulative reward.
+
+    Applications:
+    - Image and speech recognition
+    - Natural language processing
+    - Recommendation systems
+    - Autonomous vehicles
+    - Medical diagnosis
+
+    Machine learning continues to evolve rapidly, with deep learning and
+    transformer architectures driving recent breakthroughs in AI capabilities.
+    """,
+
+        "research_methodology.txt": """
+    Research Methodology Guide
+
+    Research methodology refers to the systematic approach used to conduct
+    research and gather data. Choosing the right methodology is crucial for
+    obtaining valid and reliable results.
+
+    Qualitative vs Quantitative Research:
+
+    Qualitative Research:
+    - Focuses on understanding concepts, thoughts, and experiences
+    - Uses interviews, observations, and text analysis
+    - Results in descriptive, non-numerical data
+    - Suitable for exploratory research questions
+
+    Quantitative Research:
+    - Focuses on measuring and quantifying phenomena
+    - Uses surveys, experiments, and statistical analysis
+    - Results in numerical data and statistics
+    - Suitable for testing hypotheses
+
+    Common Research Methods:
+
+    1. Literature Review
+    Systematic analysis of existing research on a topic.
+    Helps identify gaps and establish theoretical framework.
+
+    2. Case Study
+    In-depth investigation of a specific instance or phenomenon.
+    Useful for exploring complex issues in real-world context.
+
+    3. Survey Research
+    Collection of data from a sample population using questionnaires.
+    Enables generalization to larger populations.
+
+    4. Experimental Research
+    Controlled investigation to establish cause-effect relationships.
+    Involves manipulation of variables and random assignment.
+
+    5. Action Research
+    Collaborative inquiry aimed at improving practices.
+    Combines research with practical problem-solving.
+
+    Best Practices:
+    - Clearly define research questions
+    - Choose appropriate methodology
+    - Ensure ethical considerations
+    - Document procedures thoroughly
+    - Validate findings through triangulation
+    """,
+
+        "academic_writing_tips.txt": """
+    Academic Writing: Best Practices
+
+    Academic writing is a formal style of writing used in universities
+    and scholarly publications. It requires clarity, precision, and
+    adherence to specific conventions.
+
+    Key Principles:
+
+    1. Clarity and Precision
+    - Use clear, concise language
+    - Avoid ambiguous statements
+    - Define technical terms
+    - Be specific rather than general
+
+    2. Evidence-Based Arguments
+    - Support claims with evidence
+    - Cite sources properly
+    - Distinguish facts from opinions
+    - Acknowledge limitations
+
+    3. Logical Structure
+    - Organize ideas coherently
+    - Use clear topic sentences
+    - Provide smooth transitions
+    - Build arguments progressively
+
+    4. Formal Tone
+    - Avoid colloquialisms
+    - Use third person perspective
+    - Maintain objectivity
+    - Be respectful of other viewpoints
+
+    Citation Styles:
+
+    APA (American Psychological Association):
+    Used in social sciences, education, and psychology.
+    Format: (Author, Year)
+
+    MLA (Modern Language Association):
+    Used in humanities and liberal arts.
+    Format: (Author Page)
+
+    Chicago/Turabian:
+    Used in history and some humanities.
+    Uses footnotes or author-date format.
+
+    Common Mistakes to Avoid:
+    - Plagiarism (always cite sources)
+    - Overgeneralization
+    - Weak thesis statements
+    - Poor paragraph structure
+    - Inconsistent citation style
+    - Grammatical errors
+
+    Remember: Good academic writing takes practice.
+    Revise multiple times and seek feedback.
+    """
+    }
+
+    def create_sample_documents():
+        """Create sample documents in the data/documents directory."""
+        docs_dir = Path("data/documents")
+        docs_dir.mkdir(parents=True, exist_ok=True)
+
+        print("Creating sample documents...")
+
+        for filename, content in SAMPLE_DOCUMENTS.items():
+            filepath = docs_dir / filename
+            filepath.write_text(content.strip())
+            print(f"  Created: {filepath}")
+
+        print(f"\nCreated {len(SAMPLE_DOCUMENTS)} sample documents in {docs_dir}/")
+        print("\nYou can now ingest these documents with:")
+        print("  make ingest")
+        print("  # OR")
+        print("  python -m research_assistant.cli ingest --dir data/documents")
+
+    if __name__ == "__main__":
+        create_sample_documents()
+
+export_docs_script:
+  file: "scripts/export_docs.py"
+  content: |
+    #!/usr/bin/env python3
+    """
+    Export Documentation Script - Exports chat history and answers.
+
+    Usage:
+        python scripts/export_docs.py --format markdown --output export.md
+        python scripts/export_docs.py --format json --output export.json
+    """
+
+    import argparse
+    import json
+    from datetime import datetime
+    from pathlib import Path
+
+
+    def export_to_markdown(data: dict, output_path: Path) -> None:
+        """Export chat history to Markdown format."""
+        with open(output_path, "w") as f:
+            f.write(f"# Research Assistant Export\n\n")
+            f.write(f"Exported: {datetime.now().isoformat()}\n\n")
+            f.write("---\n\n")
+
+            for i, item in enumerate(data.get("conversations", []), 1):
+                f.write(f"## Conversation {i}\n\n")
+                f.write(f"**Question:** {item.get('question', 'N/A')}\n\n")
+                f.write(f"**Answer:**\n\n{item.get('answer', 'N/A')}\n\n")
+
+                if item.get("sources"):
+                    f.write("**Sources:**\n\n")
+                    for source in item["sources"]:
+                        f.write(f"- {source}\n")
+                    f.write("\n")
+
+                f.write("---\n\n")
+
+        print(f"Exported to: {output_path}")
+
+
+    def export_to_json(data: dict, output_path: Path) -> None:
+        """Export chat history to JSON format."""
+        export_data = {
+            "exported_at": datetime.now().isoformat(),
+            "version": "1.0.0",
+            **data
+        }
+
+        with open(output_path, "w") as f:
+            json.dump(export_data, f, indent=2)
+
+        print(f"Exported to: {output_path}")
+
+
+    def main():
+        parser = argparse.ArgumentParser(description="Export research assistant data")
+        parser.add_argument(
+            "--format",
+            choices=["markdown", "json"],
+            default="markdown",
+            help="Export format (default: markdown)"
+        )
+        parser.add_argument(
+            "--output",
+            type=Path,
+            default=Path("export.md"),
+            help="Output file path"
+        )
+        parser.add_argument(
+            "--input",
+            type=Path,
+            help="Input JSON file with chat history (optional)"
+        )
+
+        args = parser.parse_args()
+
+        # Load data (placeholder - would integrate with actual chat storage)
+        if args.input and args.input.exists():
+            with open(args.input) as f:
+                data = json.load(f)
+        else:
+            # Sample data for demonstration
+            data = {
+                "conversations": [
+                    {
+                        "question": "What is machine learning?",
+                        "answer": "Machine learning is a subset of AI...",
+                        "sources": ["machine_learning_intro.txt"]
+                    }
+                ]
+            }
+            print("Note: Using sample data. Provide --input for actual data.")
+
+        # Export
+        if args.format == "markdown":
+            export_to_markdown(data, args.output)
+        else:
+            export_to_json(data, args.output)
+
+
+    if __name__ == "__main__":
+        main()
+
+# ============================================================================
+# TEST FIXTURES
+# ============================================================================
+
+test_fixtures:
+  sample_document_txt:
+    file: "tests/fixtures/sample_document.txt"
+    content: |
+      Sample Research Document for Testing
+
+      This is a sample document used for testing the research assistant.
+      It contains multiple paragraphs with different topics.
+
+      Section 1: Introduction
+
+      The research assistant is designed to help students analyze and
+      understand academic documents. It uses multiple AI agents to provide
+      comprehensive answers with proper citations.
+
+      Section 2: Methodology
+
+      The system employs a multi-agent architecture:
+      - Supervisor Agent: Orchestrates the workflow
+      - Researcher Agent: Searches and retrieves relevant information
+      - Writer Agent: Synthesizes findings into coherent responses
+      - Critic Agent: Reviews and ensures quality
+
+      Section 3: Key Features
+
+      1. Document Upload: Supports PDF and text files
+      2. Semantic Search: Uses vector embeddings for relevant retrieval
+      3. Multi-Agent Processing: Collaborative AI agents work together
+      4. Citation Support: All claims are linked to source documents
+      5. Conversation Memory: Maintains context across questions
+
+      Section 4: Conclusion
+
+      The research assistant provides a powerful tool for academic research,
+      combining the latest advances in AI with practical usability features.
+
+  test_questions_json:
+    file: "tests/fixtures/test_questions.json"
+    content: |
+      {
+        "test_cases": [
+          {
+            "id": "TC001",
+            "question": "What is the purpose of the research assistant?",
+            "expected_keywords": ["help", "students", "analyze", "documents"],
+            "expected_agents": ["researcher", "writer"],
+            "category": "general"
+          },
+          {
+            "id": "TC002",
+            "question": "What agents are used in the system?",
+            "expected_keywords": ["supervisor", "researcher", "writer", "critic"],
+            "expected_agents": ["researcher", "writer"],
+            "category": "architecture"
+          },
+          {
+            "id": "TC003",
+            "question": "How does semantic search work?",
+            "expected_keywords": ["vector", "embeddings", "retrieval"],
+            "expected_agents": ["researcher", "writer"],
+            "category": "technical"
+          },
+          {
+            "id": "TC004",
+            "question": "List the key features of the system.",
+            "expected_keywords": ["upload", "search", "agents", "citation"],
+            "expected_agents": ["researcher", "writer"],
+            "category": "features"
+          },
+          {
+            "id": "TC005",
+            "question": "Compare the roles of researcher and writer agents.",
+            "expected_keywords": ["researcher", "writer", "search", "synthesize"],
+            "expected_agents": ["researcher", "writer", "critic"],
+            "category": "comparison"
+          }
+        ],
+        "edge_cases": [
+          {
+            "id": "EC001",
+            "question": "",
+            "expected_error": "Empty question",
+            "category": "validation"
+          },
+          {
+            "id": "EC002",
+            "question": "What is quantum computing?",
+            "expected_behavior": "No relevant documents found",
+            "category": "no_match"
+          }
+        ]
+      }
+
+  sample_pdf_placeholder:
+    file: "tests/fixtures/README.md"
+    content: |
+      # Test Fixtures
+
+      This directory contains test data and fixtures for the research assistant.
+
+      ## Files
+
+      - `sample_document.txt` - Sample text document for testing
+      - `test_questions.json` - Test questions with expected outcomes
+
+      ## Adding PDF Test Files
+
+      To test PDF processing, add sample PDF files to this directory.
+      You can create a simple PDF using:
+
+      ```python
+      from reportlab.lib.pagesizes import letter
+      from reportlab.pdfgen import canvas
+
+      c = canvas.Canvas("sample.pdf", pagesize=letter)
+      c.drawString(100, 750, "Sample PDF for Testing")
+      c.save()
+      ```
+
+      ## Usage in Tests
+
+      ```python
+      from pathlib import Path
+
+      FIXTURES_DIR = Path(__file__).parent / "fixtures"
+
+      def test_document_loading():
+          doc_path = FIXTURES_DIR / "sample_document.txt"
+          # ... test code
+      ```
+
+# ============================================================================
+# KUBERNETES OVERLAY FILES
+# ============================================================================
+
+kubernetes_overlays:
+  dev_kustomization:
+    file: "infrastructure/kubernetes/overlays/dev/kustomization.yaml"
+    content: |
+      # Development Environment Overlay
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+
+      namespace: research-assistant-dev
+
+      resources:
+        - ../../base
+
+      namePrefix: dev-
+
+      commonLabels:
+        environment: development
+
+      # Development-specific patches
+      patches:
+        # Reduce resource requests for development
+        - patch: |-
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/requests/memory
+              value: "256Mi"
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/requests/cpu
+              value: "100m"
+          target:
+            kind: Deployment
+            name: research-assistant-app
+
+        # Use single replica in dev
+        - patch: |-
+            - op: replace
+              path: /spec/replicas
+              value: 1
+          target:
+            kind: Deployment
+
+      # Development ConfigMap overrides
+      configMapGenerator:
+        - name: research-assistant-config
+          behavior: merge
+          literals:
+            - RESEARCH_LOG_LEVEL=DEBUG
+            - RESEARCH_DEBUG=true
+            - RESEARCH_ENVIRONMENT=development
+
+  prod_kustomization:
+    file: "infrastructure/kubernetes/overlays/prod/kustomization.yaml"
+    content: |
+      # Production Environment Overlay
+      apiVersion: kustomize.config.k8s.io/v1beta1
+      kind: Kustomization
+
+      namespace: research-assistant
+
+      resources:
+        - ../../base
+
+      namePrefix: prod-
+
+      commonLabels:
+        environment: production
+
+      # Production-specific patches
+      patches:
+        # Increase resources for production
+        - patch: |-
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/requests/memory
+              value: "1Gi"
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/requests/cpu
+              value: "500m"
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/limits/memory
+              value: "2Gi"
+            - op: replace
+              path: /spec/template/spec/containers/0/resources/limits/cpu
+              value: "1000m"
+          target:
+            kind: Deployment
+            name: research-assistant-app
+
+        # Multiple replicas in production
+        - patch: |-
+            - op: replace
+              path: /spec/replicas
+              value: 2
+          target:
+            kind: Deployment
+            name: research-assistant-app
+
+      # Production ConfigMap overrides
+      configMapGenerator:
+        - name: research-assistant-config
+          behavior: merge
+          literals:
+            - RESEARCH_LOG_LEVEL=INFO
+            - RESEARCH_DEBUG=false
+            - RESEARCH_ENVIRONMENT=production
+            - RESEARCH_LOG_JSON=true
+
+# ============================================================================
+# DIRECTORY CREATION SCRIPT
+# ============================================================================
+
+directory_creation:
+  description: |
+    Commands to create all required directories before implementing files.
+
+  bash_script: |
+    #!/bin/bash
+    # Create all required directories for the project
+
+    echo "Creating directory structure..."
+
+    # Source code directories
+    mkdir -p src/research_assistant/{config,core,services,agents,tools,graph,ui/pages}
+
+    # Test directories
+    mkdir -p tests/{unit,integration,fixtures}
+
+    # Config directories
+    mkdir -p .streamlit
+
+    # Ensure data directories exist
+    mkdir -p data/{documents,vectorstore}
+
+    # Create __init__.py files for Python packages
+    touch src/research_assistant/__init__.py
+    touch src/research_assistant/config/__init__.py
+    touch src/research_assistant/core/__init__.py
+    touch src/research_assistant/services/__init__.py
+    touch src/research_assistant/agents/__init__.py
+    touch src/research_assistant/tools/__init__.py
+    touch src/research_assistant/graph/__init__.py
+    touch src/research_assistant/ui/__init__.py
+    touch tests/__init__.py
+    touch tests/unit/__init__.py
+    touch tests/integration/__init__.py
+
+    # Create py.typed marker
+    touch src/research_assistant/py.typed
+
+    echo "Directory structure created successfully!"
+    echo ""
+    echo "Created directories:"
+    find src tests .streamlit -type d 2>/dev/null | head -20
+
+  makefile_target: |
+    .PHONY: create-structure
+    create-structure: ## Create project directory structure
+    	@echo "$(BLUE)Creating directory structure...$(NC)"
+    	@mkdir -p src/research_assistant/{config,core,services,agents,tools,graph,ui/pages}
+    	@mkdir -p tests/{unit,integration,fixtures}
+    	@mkdir -p .streamlit
+    	@mkdir -p data/{documents,vectorstore}
+    	@touch src/research_assistant/__init__.py
+    	@touch src/research_assistant/config/__init__.py
+    	@touch src/research_assistant/core/__init__.py
+    	@touch src/research_assistant/services/__init__.py
+    	@touch src/research_assistant/agents/__init__.py
+    	@touch src/research_assistant/tools/__init__.py
+    	@touch src/research_assistant/graph/__init__.py
+    	@touch src/research_assistant/ui/__init__.py
+    	@touch tests/__init__.py
+    	@touch tests/unit/__init__.py
+    	@touch tests/integration/__init__.py
+    	@touch src/research_assistant/py.typed
+    	@echo "$(GREEN)Directory structure created!$(NC)"
+
+# ============================================================================
+# IMPLEMENTATION CHECKLIST
+# ============================================================================
+
+implementation_checklist:
+  pre_implementation:
+    - "[ ] Run: make create-structure"
+    - "[ ] Run: make install-dev"
+    - "[ ] Run: make verify-all"
+    - "[ ] Run: make download-models"
+
+  phase_1_foundation:
+    - "[ ] Create src/research_assistant/config/settings.py"
+    - "[ ] Create src/research_assistant/config/prompts.py"
+    - "[ ] Create src/research_assistant/core/exceptions.py"
+    - "[ ] Create src/research_assistant/core/schemas.py"
+    - "[ ] Verify: python -c 'from research_assistant.config import Settings'"
+
+  phase_2_services:
+    - "[ ] Create src/research_assistant/services/embeddings.py"
+    - "[ ] Create src/research_assistant/services/vector_store.py"
+    - "[ ] Create src/research_assistant/services/document_service.py"
+    - "[ ] Create src/research_assistant/services/llm_service.py"
+    - "[ ] Verify: python -c 'from research_assistant.services import EmbeddingService'"
+
+  phase_3_tools:
+    - "[ ] Create src/research_assistant/tools/search.py"
+    - "[ ] Create src/research_assistant/tools/document.py"
+    - "[ ] Verify: python -c 'from research_assistant.tools import vector_search'"
+
+  phase_4_agents:
+    - "[ ] Create src/research_assistant/agents/base.py"
+    - "[ ] Create src/research_assistant/agents/researcher.py"
+    - "[ ] Create src/research_assistant/agents/writer.py"
+    - "[ ] Create src/research_assistant/agents/critic.py"
+    - "[ ] Create src/research_assistant/agents/supervisor.py"
+    - "[ ] Verify: python -c 'from research_assistant.agents import SupervisorAgent'"
+
+  phase_5_workflow:
+    - "[ ] Create src/research_assistant/graph/state.py"
+    - "[ ] Create src/research_assistant/graph/nodes.py"
+    - "[ ] Create src/research_assistant/graph/workflow.py"
+    - "[ ] Verify: python -c 'from research_assistant.graph import ResearchGraph'"
+
+  phase_6_ui:
+    - "[ ] Create .streamlit/config.toml"
+    - "[ ] Create src/research_assistant/ui/components.py"
+    - "[ ] Create src/research_assistant/ui/app.py"
+    - "[ ] Create src/research_assistant/ui/pages/1_Chat.py"
+    - "[ ] Create src/research_assistant/ui/pages/2_Documents.py"
+    - "[ ] Create src/research_assistant/ui/pages/3_Settings.py"
+    - "[ ] Verify: streamlit run src/research_assistant/ui/app.py"
+
+  phase_7_cli:
+    - "[ ] Create src/research_assistant/cli.py"
+    - "[ ] Verify: python -m research_assistant.cli --help"
+
+  phase_8_tests:
+    - "[ ] Create tests/conftest.py"
+    - "[ ] Create tests/fixtures/sample_document.txt"
+    - "[ ] Create tests/fixtures/test_questions.json"
+    - "[ ] Create tests/unit/test_*.py files"
+    - "[ ] Create tests/integration/test_*.py files"
+    - "[ ] Verify: pytest tests/ -v"
+
+  phase_9_polish:
+    - "[ ] Create .pre-commit-config.yaml"
+    - "[ ] Create scripts/seed_data.py"
+    - "[ ] Run: make lint"
+    - "[ ] Run: make test"
+    - "[ ] Run: make seed-data"
+    - "[ ] Run: make run"
+
+  post_implementation:
+    - "[ ] Run: make podman-build"
+    - "[ ] Run: make podman-compose-up"
+    - "[ ] Test application at http://localhost:8501"
+    - "[ ] Upload test documents"
+    - "[ ] Ask test questions"
+    - "[ ] Verify agents work correctly"
+
+# ============================================================================
+# END OF IMPLEMENTATION FILES DOCUMENT
+# ============================================================================

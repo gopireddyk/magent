@@ -68,11 +68,33 @@ help: ## Show this help message
 .PHONY: setup
 setup: ## Complete project setup (venv, deps, ollama)
 	@echo "$(BLUE)Setting up project...$(NC)"
+	@$(MAKE) create-structure
 	@$(MAKE) venv
 	@$(MAKE) install-dev
 	@$(MAKE) setup-ollama
 	@$(MAKE) setup-precommit
 	@echo "$(GREEN)Setup complete!$(NC)"
+
+.PHONY: create-structure
+create-structure: ## Create project directory structure
+	@echo "$(BLUE)Creating directory structure...$(NC)"
+	@mkdir -p src/research_assistant/{config,core,services,agents,tools,graph,ui/pages}
+	@mkdir -p tests/{unit,integration,fixtures}
+	@mkdir -p .streamlit
+	@mkdir -p data/{documents,vectorstore}
+	@touch src/research_assistant/__init__.py
+	@touch src/research_assistant/config/__init__.py
+	@touch src/research_assistant/core/__init__.py
+	@touch src/research_assistant/services/__init__.py
+	@touch src/research_assistant/agents/__init__.py
+	@touch src/research_assistant/tools/__init__.py
+	@touch src/research_assistant/graph/__init__.py
+	@touch src/research_assistant/ui/__init__.py
+	@touch tests/__init__.py
+	@touch tests/unit/__init__.py
+	@touch tests/integration/__init__.py
+	@touch src/research_assistant/py.typed
+	@echo "$(GREEN)Directory structure created!$(NC)"
 
 .PHONY: venv
 venv: ## Create Python virtual environment

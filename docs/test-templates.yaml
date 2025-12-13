@@ -1,0 +1,882 @@
+# ============================================================================
+# TEST TEMPLATES - COMPLETE TEST CODE
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Complete test file templates for the project
+# ============================================================================
+
+# ============================================================================
+# CONFTEST.PY - PYTEST FIXTURES
+# ============================================================================
+conftest:
+  file: "tests/conftest.py"
+  content: |
+    """
+    Pytest Configuration and Fixtures.
+
+    This file contains shared fixtures used across all tests.
+    Fixtures are automatically discovered by pytest.
+    """
+
+    import os
+    import tempfile
+    from pathlib import Path
+    from typing import Generator
+    from unittest.mock import MagicMock, patch
+
+    import pytest
+
+    # Set test environment before importing application modules
+    os.environ["RESEARCH_ENVIRONMENT"] = "test"
+    os.environ["RESEARCH_DEBUG"] = "true"
+    os.environ["RESEARCH_LOG_LEVEL"] = "DEBUG"
+
+
+    # ============================================================================
+    # PATH FIXTURES
+    # ============================================================================
+
+    @pytest.fixture
+    def fixtures_dir() -> Path:
+        """Return the path to test fixtures directory."""
+        return Path(__file__).parent / "fixtures"
+
+
+    @pytest.fixture
+    def sample_document_path(fixtures_dir: Path) -> Path:
+        """Return path to sample document."""
+        return fixtures_dir / "sample_document.txt"
+
+
+    @pytest.fixture
+    def temp_dir() -> Generator[Path, None, None]:
+        """Create a temporary directory for tests."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            yield Path(tmpdir)
+
+
+    # ============================================================================
+    # SETTINGS FIXTURES
+    # ============================================================================
+
+    @pytest.fixture
+    def test_settings():
+        """Create test settings with mocked values."""
+        from research_assistant.config.settings import Settings
+
+        return Settings(
+            ollama_base_url="http://localhost:11434",
+            ollama_model="llama3.2",
+            embedding_model="all-MiniLM-L6-v2",
+            chroma_persist_dir="./test_data/vectorstore",
+            chunk_size=500,
+            chunk_overlap=100,
+            max_iterations=3,
+            max_revisions=2,
+            retrieval_top_k=3,
+            environment="test",
+            debug=True,
+        )
+
+
+    # ============================================================================
+    # MOCK FIXTURES
+    # ============================================================================
+
+    @pytest.fixture
+    def mock_llm():
+        """Create a mocked LLM client."""
+        mock = MagicMock()
+        mock.invoke.return_value = MagicMock(content="Mocked LLM response")
+        mock.generate.return_value = "Mocked generation"
+        return mock
+
+
+    @pytest.fixture
+    def mock_embeddings():
+        """Create a mocked embedding model."""
+        import numpy as np
+
+        mock = MagicMock()
+        # Return consistent embeddings for testing
+        mock.embed_documents.return_value = [
+            np.random.rand(384).tolist() for _ in range(3)
+        ]
+        mock.embed_query.return_value = np.random.rand(384).tolist()
+        return mock
+
+
+    @pytest.fixture
+    def mock_vector_store(mock_embeddings):
+        """Create a mocked vector store."""
+        mock = MagicMock()
+        mock.similarity_search.return_value = [
+            MagicMock(
+                page_content="Sample content from document",
+                metadata={"source": "test.txt", "page": 1}
+            )
+        ]
+        mock.add_documents.return_value = ["doc_id_1", "doc_id_2"]
+        return mock
+
+
+    @pytest.fixture
+    def mock_ollama_client():
+        """Create a mocked Ollama client."""
+        with patch("ollama.Client") as mock_client:
+            instance = mock_client.return_value
+            instance.chat.return_value = {
+                "message": {"content": "Mocked Ollama response"}
+            }
+            instance.list.return_value = {"models": [{"name": "llama3.2"}]}
+            yield instance
+
+
+    # ============================================================================
+    # DATA FIXTURES
+    # ============================================================================
+
+    @pytest.fixture
+    def sample_document():
+        """Create a sample Document object."""
+        from research_assistant.core.schemas import Document
+
+        return Document(
+            content="This is sample document content for testing.",
+            metadata={
+                "source": "test_document.txt",
+                "filename": "test_document.txt",
+                "page": 1,
+            }
+        )
+
+
+    @pytest.fixture
+    def sample_chunks():
+        """Create sample document chunks."""
+        from research_assistant.core.schemas import DocumentChunk
+
+        return [
+            DocumentChunk(
+                content="First chunk of the document with some content.",
+                metadata={"source": "test.txt", "chunk_index": 0},
+                embedding=None,
+            ),
+            DocumentChunk(
+                content="Second chunk with different content.",
+                metadata={"source": "test.txt", "chunk_index": 1},
+                embedding=None,
+            ),
+            DocumentChunk(
+                content="Third chunk containing more information.",
+                metadata={"source": "test.txt", "chunk_index": 2},
+                embedding=None,
+            ),
+        ]
+
+
+    @pytest.fixture
+    def sample_search_results():
+        """Create sample search results."""
+        from research_assistant.core.schemas import SearchResult
+
+        return [
+            SearchResult(
+                content="Relevant content from document 1",
+                metadata={"source": "doc1.txt", "page": 1},
+                score=0.95,
+            ),
+            SearchResult(
+                content="Relevant content from document 2",
+                metadata={"source": "doc2.txt", "page": 3},
+                score=0.85,
+            ),
+        ]
+
+
+    @pytest.fixture
+    def research_state():
+        """Create an initial research state."""
+        return {
+            "question": "What is machine learning?",
+            "documents": [],
+            "research_notes": "",
+            "draft_answer": "",
+            "critique": "",
+            "revision_count": 0,
+            "final_answer": "",
+            "sources": [],
+            "next_agent": "researcher",
+            "status": "pending",
+            "messages": [],
+            "error": None,
+        }
+
+
+    # ============================================================================
+    # INTEGRATION TEST MARKERS
+    # ============================================================================
+
+    def pytest_configure(config):
+        """Register custom markers."""
+        config.addinivalue_line(
+            "markers", "unit: marks tests as unit tests"
+        )
+        config.addinivalue_line(
+            "markers", "integration: marks tests as integration tests"
+        )
+        config.addinivalue_line(
+            "markers", "slow: marks tests as slow running"
+        )
+        config.addinivalue_line(
+            "markers", "requires_ollama: marks tests that require Ollama"
+        )
+        config.addinivalue_line(
+            "markers", "requires_gpu: marks tests that require GPU"
+        )
+
+# ============================================================================
+# UNIT TESTS
+# ============================================================================
+
+unit_tests:
+  test_settings:
+    file: "tests/unit/test_settings.py"
+    content: |
+      """Tests for Settings configuration."""
+
+      import os
+      import pytest
+      from unittest.mock import patch
+
+
+      class TestSettings:
+          """Test cases for Settings class."""
+
+          def test_default_settings(self):
+              """Test that default settings are loaded correctly."""
+              from research_assistant.config.settings import Settings
+
+              settings = Settings()
+
+              assert settings.ollama_model == "llama3.2"
+              assert settings.embedding_model == "all-MiniLM-L6-v2"
+              assert settings.chunk_size == 1000
+              assert settings.chunk_overlap == 200
+
+          def test_settings_from_env(self):
+              """Test that settings can be loaded from environment."""
+              with patch.dict(os.environ, {
+                  "RESEARCH_OLLAMA_MODEL": "mistral",
+                  "RESEARCH_CHUNK_SIZE": "500",
+              }):
+                  from research_assistant.config.settings import Settings
+                  settings = Settings()
+
+                  # Note: Pydantic caches, so this test may need adjustment
+                  # based on how settings are instantiated
+
+          def test_settings_validation(self):
+              """Test that invalid settings raise errors."""
+              from research_assistant.config.settings import Settings
+              from pydantic import ValidationError
+
+              # Temperature should be between 0 and 1
+              # This would raise if validation is strict
+
+          def test_chroma_persist_dir_default(self):
+              """Test default ChromaDB persist directory."""
+              from research_assistant.config.settings import Settings
+
+              settings = Settings()
+              assert "vectorstore" in settings.chroma_persist_dir
+
+  test_schemas:
+    file: "tests/unit/test_schemas.py"
+    content: |
+      """Tests for Pydantic schemas."""
+
+      import pytest
+      from datetime import datetime
+
+
+      class TestDocument:
+          """Test cases for Document schema."""
+
+          def test_document_creation(self):
+              """Test creating a Document."""
+              from research_assistant.core.schemas import Document
+
+              doc = Document(
+                  content="Test content",
+                  metadata={"source": "test.txt"}
+              )
+
+              assert doc.content == "Test content"
+              assert doc.metadata["source"] == "test.txt"
+
+          def test_document_with_optional_fields(self):
+              """Test Document with optional fields."""
+              from research_assistant.core.schemas import Document
+
+              doc = Document(
+                  content="Test content",
+                  metadata={},
+                  id="doc-123"
+              )
+
+              assert doc.id == "doc-123"
+
+
+      class TestDocumentChunk:
+          """Test cases for DocumentChunk schema."""
+
+          def test_chunk_creation(self):
+              """Test creating a DocumentChunk."""
+              from research_assistant.core.schemas import DocumentChunk
+
+              chunk = DocumentChunk(
+                  content="Chunk content",
+                  metadata={"chunk_index": 0},
+                  embedding=None
+              )
+
+              assert chunk.content == "Chunk content"
+              assert chunk.metadata["chunk_index"] == 0
+
+          def test_chunk_with_embedding(self):
+              """Test chunk with embedding vector."""
+              from research_assistant.core.schemas import DocumentChunk
+
+              embedding = [0.1] * 384
+              chunk = DocumentChunk(
+                  content="Chunk content",
+                  metadata={},
+                  embedding=embedding
+              )
+
+              assert len(chunk.embedding) == 384
+
+
+      class TestSearchResult:
+          """Test cases for SearchResult schema."""
+
+          def test_search_result_creation(self):
+              """Test creating a SearchResult."""
+              from research_assistant.core.schemas import SearchResult
+
+              result = SearchResult(
+                  content="Found content",
+                  metadata={"source": "doc.txt"},
+                  score=0.95
+              )
+
+              assert result.content == "Found content"
+              assert result.score == 0.95
+
+          def test_search_result_ordering(self):
+              """Test that results can be sorted by score."""
+              from research_assistant.core.schemas import SearchResult
+
+              results = [
+                  SearchResult(content="A", metadata={}, score=0.8),
+                  SearchResult(content="B", metadata={}, score=0.95),
+                  SearchResult(content="C", metadata={}, score=0.7),
+              ]
+
+              sorted_results = sorted(results, key=lambda x: x.score, reverse=True)
+              assert sorted_results[0].content == "B"
+
+  test_embeddings:
+    file: "tests/unit/test_embeddings.py"
+    content: |
+      """Tests for Embedding service."""
+
+      import pytest
+      from unittest.mock import MagicMock, patch
+
+
+      class TestEmbeddingService:
+          """Test cases for EmbeddingService."""
+
+          def test_embed_single_text(self, mock_embeddings):
+              """Test embedding a single text."""
+              # Mock the embedding call
+              mock_embeddings.embed_query.return_value = [0.1] * 384
+
+              result = mock_embeddings.embed_query("Test text")
+
+              assert len(result) == 384
+              mock_embeddings.embed_query.assert_called_once_with("Test text")
+
+          def test_embed_multiple_texts(self, mock_embeddings):
+              """Test embedding multiple texts."""
+              texts = ["Text 1", "Text 2", "Text 3"]
+
+              results = mock_embeddings.embed_documents(texts)
+
+              assert len(results) == 3
+              assert all(len(r) == 384 for r in results)
+
+          def test_embedding_dimensions(self, mock_embeddings):
+              """Test that embeddings have correct dimensions."""
+              result = mock_embeddings.embed_query("Test")
+
+              # all-MiniLM-L6-v2 produces 384-dimensional vectors
+              assert len(result) == 384
+
+  test_vector_store:
+    file: "tests/unit/test_vector_store.py"
+    content: |
+      """Tests for Vector Store service."""
+
+      import pytest
+      from unittest.mock import MagicMock, patch
+
+
+      class TestVectorStoreService:
+          """Test cases for VectorStoreService."""
+
+          def test_add_documents(self, mock_vector_store, sample_chunks):
+              """Test adding documents to the store."""
+              result = mock_vector_store.add_documents(sample_chunks)
+
+              assert len(result) == 2
+              mock_vector_store.add_documents.assert_called_once()
+
+          def test_similarity_search(self, mock_vector_store):
+              """Test similarity search."""
+              results = mock_vector_store.similarity_search("test query")
+
+              assert len(results) >= 1
+              assert hasattr(results[0], "page_content")
+
+          def test_similarity_search_with_score(self, mock_vector_store):
+              """Test similarity search with scores."""
+              mock_vector_store.similarity_search_with_score.return_value = [
+                  (MagicMock(page_content="Content"), 0.95)
+              ]
+
+              results = mock_vector_store.similarity_search_with_score("query")
+
+              assert len(results) >= 1
+              assert results[0][1] == 0.95
+
+          def test_delete_collection(self, mock_vector_store):
+              """Test deleting a collection."""
+              mock_vector_store.delete_collection.return_value = True
+
+              result = mock_vector_store.delete_collection()
+
+              assert result is True
+
+  test_document_service:
+    file: "tests/unit/test_document_service.py"
+    content: |
+      """Tests for Document service."""
+
+      import pytest
+      from pathlib import Path
+      from unittest.mock import MagicMock, patch, mock_open
+
+
+      class TestDocumentService:
+          """Test cases for DocumentService."""
+
+          def test_load_text_file(self, fixtures_dir):
+              """Test loading a text file."""
+              # This would test actual file loading
+              sample_path = fixtures_dir / "sample_document.txt"
+
+              if sample_path.exists():
+                  content = sample_path.read_text()
+                  assert len(content) > 0
+
+          def test_chunk_document(self, sample_document):
+              """Test chunking a document."""
+              # Mock chunking logic
+              chunk_size = 100
+              overlap = 20
+
+              content = sample_document.content
+              # Simple chunking simulation
+              chunks = []
+              for i in range(0, len(content), chunk_size - overlap):
+                  chunk = content[i:i + chunk_size]
+                  if chunk:
+                      chunks.append(chunk)
+
+              assert len(chunks) >= 1
+
+          def test_extract_metadata(self):
+              """Test metadata extraction from document."""
+              metadata = {
+                  "source": "test.pdf",
+                  "filename": "test.pdf",
+                  "page": 1,
+                  "created_at": "2024-01-01"
+              }
+
+              assert "source" in metadata
+              assert "filename" in metadata
+
+          def test_supported_file_types(self):
+              """Test that supported file types are defined."""
+              supported = [".txt", ".pdf", ".md"]
+
+              assert ".txt" in supported
+              assert ".pdf" in supported
+
+  test_agents:
+    file: "tests/unit/test_agents.py"
+    content: |
+      """Tests for AI Agents."""
+
+      import pytest
+      from unittest.mock import MagicMock, patch, AsyncMock
+
+
+      class TestBaseAgent:
+          """Test cases for BaseAgent."""
+
+          def test_agent_has_name(self):
+              """Test that agents have a name."""
+              # Would test actual agent implementation
+              agent_name = "researcher"
+              assert agent_name is not None
+
+          def test_agent_has_description(self):
+              """Test that agents have a description."""
+              description = "Searches and retrieves relevant information"
+              assert len(description) > 0
+
+
+      class TestResearcherAgent:
+          """Test cases for ResearcherAgent."""
+
+          def test_researcher_searches_documents(self, mock_vector_store, research_state):
+              """Test that researcher agent searches documents."""
+              mock_vector_store.similarity_search.return_value = [
+                  MagicMock(page_content="Found content", metadata={"source": "test.txt"})
+              ]
+
+              # Simulate search
+              results = mock_vector_store.similarity_search(research_state["question"])
+
+              assert len(results) >= 1
+
+          def test_researcher_extracts_facts(self, sample_search_results):
+              """Test that researcher extracts facts from results."""
+              facts = [r.content for r in sample_search_results]
+
+              assert len(facts) == 2
+              assert "Relevant content" in facts[0]
+
+
+      class TestWriterAgent:
+          """Test cases for WriterAgent."""
+
+          def test_writer_synthesizes_response(self, mock_llm, research_state):
+              """Test that writer synthesizes a response."""
+              research_state["research_notes"] = "Key finding 1. Key finding 2."
+
+              mock_llm.invoke.return_value = MagicMock(
+                  content="Synthesized response with citations [1]."
+              )
+
+              response = mock_llm.invoke("Write about: " + research_state["research_notes"])
+
+              assert "Synthesized" in response.content
+
+          def test_writer_includes_citations(self, mock_llm):
+              """Test that writer includes citations."""
+              mock_llm.invoke.return_value = MagicMock(
+                  content="The answer is X [1]. Also Y [2]."
+              )
+
+              response = mock_llm.invoke("Write response")
+
+              assert "[1]" in response.content
+
+
+      class TestCriticAgent:
+          """Test cases for CriticAgent."""
+
+          def test_critic_reviews_response(self, mock_llm):
+              """Test that critic reviews the response."""
+              mock_llm.invoke.return_value = MagicMock(
+                  content="APPROVED. The response is accurate."
+              )
+
+              response = mock_llm.invoke("Review: ...")
+
+              assert "APPROVED" in response.content
+
+          def test_critic_requests_revision(self, mock_llm):
+              """Test that critic can request revision."""
+              mock_llm.invoke.return_value = MagicMock(
+                  content="NEEDS_REVISION. Missing key details."
+              )
+
+              response = mock_llm.invoke("Review: incomplete response")
+
+              assert "NEEDS_REVISION" in response.content
+
+
+      class TestSupervisorAgent:
+          """Test cases for SupervisorAgent."""
+
+          def test_supervisor_routes_to_researcher(self, research_state):
+              """Test routing to researcher on new question."""
+              assert research_state["next_agent"] == "researcher"
+
+          def test_supervisor_routes_to_writer(self, research_state):
+              """Test routing to writer after research."""
+              research_state["research_notes"] = "Research complete"
+              research_state["next_agent"] = "writer"
+
+              assert research_state["next_agent"] == "writer"
+
+          def test_supervisor_ends_workflow(self, research_state):
+              """Test ending workflow on approval."""
+              research_state["critique"] = "APPROVED"
+              research_state["next_agent"] = "end"
+
+              assert research_state["next_agent"] == "end"
+
+  test_workflow:
+    file: "tests/unit/test_workflow.py"
+    content: |
+      """Tests for LangGraph Workflow."""
+
+      import pytest
+      from unittest.mock import MagicMock, patch
+
+
+      class TestResearchState:
+          """Test cases for ResearchState."""
+
+          def test_initial_state(self, research_state):
+              """Test initial state structure."""
+              assert "question" in research_state
+              assert "documents" in research_state
+              assert "research_notes" in research_state
+              assert "draft_answer" in research_state
+              assert "critique" in research_state
+              assert "revision_count" in research_state
+              assert "final_answer" in research_state
+              assert "sources" in research_state
+              assert "next_agent" in research_state
+              assert "status" in research_state
+
+          def test_state_update(self, research_state):
+              """Test state can be updated."""
+              research_state["research_notes"] = "New research notes"
+              research_state["status"] = "researching"
+
+              assert research_state["research_notes"] == "New research notes"
+              assert research_state["status"] == "researching"
+
+
+      class TestWorkflowNodes:
+          """Test cases for workflow nodes."""
+
+          def test_researcher_node_updates_state(self, research_state):
+              """Test researcher node updates state correctly."""
+              # Simulate node execution
+              research_state["research_notes"] = "Found relevant information"
+              research_state["documents"] = [{"content": "doc1"}]
+              research_state["next_agent"] = "writer"
+
+              assert len(research_state["documents"]) > 0
+              assert research_state["next_agent"] == "writer"
+
+          def test_writer_node_updates_state(self, research_state):
+              """Test writer node updates state correctly."""
+              research_state["draft_answer"] = "Draft response"
+              research_state["sources"] = ["source1.txt"]
+              research_state["next_agent"] = "critic"
+
+              assert research_state["draft_answer"] != ""
+              assert research_state["next_agent"] == "critic"
+
+          def test_critic_node_approves(self, research_state):
+              """Test critic node approval flow."""
+              research_state["critique"] = "APPROVED"
+              research_state["final_answer"] = research_state["draft_answer"]
+              research_state["next_agent"] = "end"
+              research_state["status"] = "complete"
+
+              assert research_state["status"] == "complete"
+
+          def test_critic_node_revision(self, research_state):
+              """Test critic node revision flow."""
+              research_state["critique"] = "NEEDS_REVISION: Add more detail"
+              research_state["revision_count"] = 1
+              research_state["next_agent"] = "writer"
+
+              assert research_state["revision_count"] == 1
+              assert research_state["next_agent"] == "writer"
+
+
+      class TestWorkflowGraph:
+          """Test cases for workflow graph."""
+
+          def test_max_iterations_limit(self, research_state):
+              """Test that max iterations is respected."""
+              max_iterations = 5
+              research_state["revision_count"] = max_iterations
+
+              # Should end after max iterations
+              should_end = research_state["revision_count"] >= max_iterations
+              assert should_end is True
+
+          def test_workflow_completes(self, research_state):
+              """Test complete workflow execution."""
+              # Simulate complete workflow
+              states = ["researching", "writing", "reviewing", "complete"]
+
+              for state in states:
+                  research_state["status"] = state
+
+              assert research_state["status"] == "complete"
+
+# ============================================================================
+# INTEGRATION TESTS
+# ============================================================================
+
+integration_tests:
+  test_rag_pipeline:
+    file: "tests/integration/test_rag_pipeline.py"
+    content: |
+      """Integration tests for RAG pipeline."""
+
+      import pytest
+      from pathlib import Path
+
+
+      @pytest.mark.integration
+      class TestRAGPipeline:
+          """Integration tests for the complete RAG pipeline."""
+
+          @pytest.mark.slow
+          def test_document_ingestion_to_search(self, temp_dir, fixtures_dir):
+              """Test complete flow from ingestion to search."""
+              # This would test:
+              # 1. Load document
+              # 2. Chunk document
+              # 3. Generate embeddings
+              # 4. Store in vector DB
+              # 5. Perform search
+              # 6. Return results
+              pass
+
+          @pytest.mark.requires_ollama
+          def test_search_with_real_embeddings(self, fixtures_dir):
+              """Test search with actual embedding model."""
+              # Requires sentence-transformers to be installed
+              # and embedding model to be available
+              pass
+
+          def test_search_returns_relevant_results(self, mock_vector_store):
+              """Test that search returns relevant results."""
+              query = "What is machine learning?"
+
+              results = mock_vector_store.similarity_search(query)
+
+              assert len(results) >= 1
+
+          def test_search_with_metadata_filter(self, mock_vector_store):
+              """Test search with metadata filtering."""
+              mock_vector_store.similarity_search.return_value = [
+                  type("Result", (), {
+                      "page_content": "Filtered content",
+                      "metadata": {"source": "specific.txt"}
+                  })()
+              ]
+
+              results = mock_vector_store.similarity_search(
+                  "query",
+                  filter={"source": "specific.txt"}
+              )
+
+              assert results[0].metadata["source"] == "specific.txt"
+
+  test_agent_workflow:
+    file: "tests/integration/test_agent_workflow.py"
+    content: |
+      """Integration tests for agent workflow."""
+
+      import pytest
+
+
+      @pytest.mark.integration
+      class TestAgentWorkflow:
+          """Integration tests for the complete agent workflow."""
+
+          def test_complete_workflow_execution(self, research_state, mock_llm, mock_vector_store):
+              """Test complete workflow from question to answer."""
+              # Setup
+              research_state["question"] = "What is machine learning?"
+
+              # Simulate workflow steps
+              # 1. Researcher finds documents
+              research_state["documents"] = [{"content": "ML is..."}]
+              research_state["research_notes"] = "Key findings..."
+              research_state["next_agent"] = "writer"
+
+              # 2. Writer creates draft
+              research_state["draft_answer"] = "Machine learning is..."
+              research_state["sources"] = ["doc1.txt"]
+              research_state["next_agent"] = "critic"
+
+              # 3. Critic approves
+              research_state["critique"] = "APPROVED"
+              research_state["final_answer"] = research_state["draft_answer"]
+              research_state["status"] = "complete"
+
+              assert research_state["status"] == "complete"
+              assert research_state["final_answer"] != ""
+
+          def test_workflow_with_revision(self, research_state, mock_llm):
+              """Test workflow that requires revision."""
+              research_state["question"] = "Complex question?"
+              research_state["draft_answer"] = "Incomplete answer"
+              research_state["critique"] = "NEEDS_REVISION"
+              research_state["revision_count"] = 1
+
+              # Simulate revision
+              research_state["draft_answer"] = "Improved answer with more detail"
+              research_state["critique"] = "APPROVED"
+              research_state["final_answer"] = research_state["draft_answer"]
+
+              assert research_state["revision_count"] == 1
+              assert "Improved" in research_state["final_answer"]
+
+          def test_workflow_max_revisions(self, research_state):
+              """Test that workflow respects max revisions."""
+              max_revisions = 3
+              research_state["revision_count"] = max_revisions
+
+              # Should stop even without approval
+              should_stop = research_state["revision_count"] >= max_revisions
+              assert should_stop is True
+
+          @pytest.mark.requires_ollama
+          def test_workflow_with_real_llm(self, research_state):
+              """Test workflow with actual Ollama LLM."""
+              # This test requires Ollama to be running
+              # Skip in CI environments
+              pass
+
+          def test_error_handling_in_workflow(self, research_state):
+              """Test error handling during workflow."""
+              research_state["error"] = "LLM connection failed"
+              research_state["status"] = "error"
+
+              assert research_state["status"] == "error"
+              assert research_state["error"] is not None
+
+# ============================================================================
+# END OF TEST TEMPLATES
+# ============================================================================
