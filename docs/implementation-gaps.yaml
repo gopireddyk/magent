@@ -1,0 +1,665 @@
+# ============================================================================
+# IMPLEMENTATION GAPS ANALYSIS
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Complete list of EVERYTHING missing for full implementation
+# ============================================================================
+# This document identifies ALL gaps that need to be filled for an AI agent
+# to create a fully functional, deployable application.
+# ============================================================================
+
+# ============================================================================
+# GAP SUMMARY
+# ============================================================================
+summary:
+  total_files_needed: 47
+  files_exist: 38
+  files_missing: 9
+  directories_missing: 4
+
+  status_by_category:
+    documentation: "100% Complete (10 files)"
+    infrastructure: "95% Complete (missing minor files)"
+    source_code: "0% Complete (ALL missing)"
+    tests: "0% Complete (ALL missing)"
+    configuration: "80% Complete (missing minor files)"
+
+# ============================================================================
+# CATEGORY 1: SOURCE CODE (CRITICAL - 0% COMPLETE)
+# ============================================================================
+source_code:
+  status: "NOT STARTED"
+  priority: "CRITICAL"
+  description: "The entire src/ directory needs to be created"
+
+  missing_directories:
+    - path: "src/"
+      description: "Source code root"
+    - path: "src/research_assistant/"
+      description: "Main Python package"
+    - path: "src/research_assistant/config/"
+      description: "Configuration module"
+    - path: "src/research_assistant/core/"
+      description: "Core utilities"
+    - path: "src/research_assistant/services/"
+      description: "Business logic services"
+    - path: "src/research_assistant/agents/"
+      description: "AI agent implementations"
+    - path: "src/research_assistant/tools/"
+      description: "Agent tools"
+    - path: "src/research_assistant/graph/"
+      description: "LangGraph workflow"
+    - path: "src/research_assistant/ui/"
+      description: "Streamlit UI"
+    - path: "src/research_assistant/ui/pages/"
+      description: "Multi-page app pages"
+
+  missing_files:
+    # Package root
+    - file: "src/research_assistant/__init__.py"
+      purpose: "Package initialization, exports __version__, Settings, ResearchGraph"
+      lines_estimate: 20
+      reference: "docs/ai-agent-implementation-guide.yaml#package_init"
+
+    - file: "src/research_assistant/py.typed"
+      purpose: "PEP 561 marker for type hints"
+      lines_estimate: 1
+      content: ""
+
+    # Config module
+    - file: "src/research_assistant/config/__init__.py"
+      purpose: "Config module exports"
+      lines_estimate: 5
+      reference: "docs/ai-agent-implementation-guide.yaml#config_init"
+
+    - file: "src/research_assistant/config/settings.py"
+      purpose: "Pydantic settings class with all env vars"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide.yaml#settings"
+
+    - file: "src/research_assistant/config/prompts.py"
+      purpose: "Agent prompt templates"
+      lines_estimate: 150
+      reference: "docs/ai-agent-implementation-guide.yaml#prompts"
+
+    # Core module
+    - file: "src/research_assistant/core/__init__.py"
+      purpose: "Core module exports"
+      lines_estimate: 5
+
+    - file: "src/research_assistant/core/exceptions.py"
+      purpose: "Custom exception classes"
+      lines_estimate: 50
+      reference: "docs/ai-agent-implementation-guide.yaml#exceptions"
+
+    - file: "src/research_assistant/core/schemas.py"
+      purpose: "Pydantic data models (Document, SearchResult, etc.)"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide.yaml#schemas"
+
+    # Services module
+    - file: "src/research_assistant/services/__init__.py"
+      purpose: "Services module exports"
+      lines_estimate: 10
+
+    - file: "src/research_assistant/services/embeddings.py"
+      purpose: "Embedding model wrapper using sentence-transformers"
+      lines_estimate: 80
+      reference: "docs/ai-agent-implementation-guide.yaml#embeddings_service"
+
+    - file: "src/research_assistant/services/vector_store.py"
+      purpose: "ChromaDB operations (add, search, delete)"
+      lines_estimate: 150
+      reference: "docs/ai-agent-implementation-guide.yaml#vector_store_service"
+
+    - file: "src/research_assistant/services/document_service.py"
+      purpose: "Document loading and chunking"
+      lines_estimate: 120
+      reference: "docs/ai-agent-implementation-guide.yaml#document_service"
+
+    - file: "src/research_assistant/services/llm_service.py"
+      purpose: "Ollama LLM wrapper"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide.yaml#llm_service"
+
+    # Agents module
+    - file: "src/research_assistant/agents/__init__.py"
+      purpose: "Agents module exports"
+      lines_estimate: 10
+
+    - file: "src/research_assistant/agents/base.py"
+      purpose: "BaseAgent abstract class"
+      lines_estimate: 80
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#base_agent"
+
+    - file: "src/research_assistant/agents/supervisor.py"
+      purpose: "Supervisor agent - orchestrates workflow"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#supervisor_agent"
+
+    - file: "src/research_assistant/agents/researcher.py"
+      purpose: "Researcher agent - searches documents"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#researcher_agent"
+
+    - file: "src/research_assistant/agents/writer.py"
+      purpose: "Writer agent - synthesizes responses"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#writer_agent"
+
+    - file: "src/research_assistant/agents/critic.py"
+      purpose: "Critic agent - reviews quality"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#critic_agent"
+
+    # Tools module
+    - file: "src/research_assistant/tools/__init__.py"
+      purpose: "Tools module exports"
+      lines_estimate: 5
+
+    - file: "src/research_assistant/tools/search.py"
+      purpose: "Vector search tool for agents"
+      lines_estimate: 60
+      reference: "docs/ai-agent-implementation-guide.yaml#search_tools"
+
+    - file: "src/research_assistant/tools/document.py"
+      purpose: "Document processing tools"
+      lines_estimate: 40
+
+    # Graph module
+    - file: "src/research_assistant/graph/__init__.py"
+      purpose: "Graph module exports"
+      lines_estimate: 5
+
+    - file: "src/research_assistant/graph/state.py"
+      purpose: "LangGraph state schema (TypedDict)"
+      lines_estimate: 50
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#state"
+
+    - file: "src/research_assistant/graph/nodes.py"
+      purpose: "Graph node functions"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#nodes"
+
+    - file: "src/research_assistant/graph/workflow.py"
+      purpose: "Main LangGraph workflow builder"
+      lines_estimate: 150
+      reference: "docs/ai-agent-implementation-guide-part2.yaml#workflow"
+
+    # UI module
+    - file: "src/research_assistant/ui/__init__.py"
+      purpose: "UI module exports"
+      lines_estimate: 5
+
+    - file: "src/research_assistant/ui/app.py"
+      purpose: "Main Streamlit application"
+      lines_estimate: 200
+      reference: "docs/ai-agent-implementation-guide-part3.yaml#streamlit_app"
+
+    - file: "src/research_assistant/ui/components.py"
+      purpose: "Reusable UI components"
+      lines_estimate: 100
+      reference: "docs/ai-agent-implementation-guide-part3.yaml#ui_components"
+
+    - file: "src/research_assistant/ui/pages/1_Chat.py"
+      purpose: "Chat interface page"
+      lines_estimate: 80
+
+    - file: "src/research_assistant/ui/pages/2_Documents.py"
+      purpose: "Document management page"
+      lines_estimate: 80
+
+    - file: "src/research_assistant/ui/pages/3_Settings.py"
+      purpose: "Settings page"
+      lines_estimate: 60
+
+    # CLI
+    - file: "src/research_assistant/cli.py"
+      purpose: "Command-line interface"
+      lines_estimate: 150
+      reference: "docs/ai-agent-implementation-guide-part3.yaml#cli"
+
+  total_source_files: 32
+  total_lines_estimate: 2400
+
+# ============================================================================
+# CATEGORY 2: TESTS (CRITICAL - 0% COMPLETE)
+# ============================================================================
+tests:
+  status: "NOT STARTED"
+  priority: "HIGH"
+  description: "The entire tests/ directory needs to be created"
+
+  missing_directories:
+    - path: "tests/"
+      description: "Test suite root"
+    - path: "tests/unit/"
+      description: "Unit tests"
+    - path: "tests/integration/"
+      description: "Integration tests"
+    - path: "tests/fixtures/"
+      description: "Test data and fixtures"
+
+  missing_files:
+    - file: "tests/__init__.py"
+      purpose: "Test package init"
+      lines_estimate: 1
+
+    - file: "tests/conftest.py"
+      purpose: "Pytest fixtures and configuration"
+      lines_estimate: 150
+      reference: "docs/ai-agent-implementation-guide-part3.yaml#conftest"
+      fixtures_needed:
+        - "settings"
+        - "mock_llm"
+        - "mock_embeddings"
+        - "mock_vector_store"
+        - "sample_document"
+        - "sample_chunks"
+        - "research_state"
+
+    # Unit tests
+    - file: "tests/unit/__init__.py"
+      purpose: "Unit test package init"
+      lines_estimate: 1
+
+    - file: "tests/unit/test_settings.py"
+      purpose: "Test settings loading"
+      lines_estimate: 50
+
+    - file: "tests/unit/test_schemas.py"
+      purpose: "Test Pydantic schemas"
+      lines_estimate: 80
+
+    - file: "tests/unit/test_embeddings.py"
+      purpose: "Test embedding service"
+      lines_estimate: 60
+
+    - file: "tests/unit/test_vector_store.py"
+      purpose: "Test ChromaDB operations"
+      lines_estimate: 100
+
+    - file: "tests/unit/test_document_service.py"
+      purpose: "Test document processing"
+      lines_estimate: 80
+
+    - file: "tests/unit/test_agents.py"
+      purpose: "Test all agents"
+      lines_estimate: 150
+
+    - file: "tests/unit/test_workflow.py"
+      purpose: "Test LangGraph workflow"
+      lines_estimate: 100
+
+    # Integration tests
+    - file: "tests/integration/__init__.py"
+      purpose: "Integration test package init"
+      lines_estimate: 1
+
+    - file: "tests/integration/test_rag_pipeline.py"
+      purpose: "Test end-to-end RAG pipeline"
+      lines_estimate: 100
+
+    - file: "tests/integration/test_agent_workflow.py"
+      purpose: "Test complete agent workflow"
+      lines_estimate: 100
+
+    # Fixtures
+    - file: "tests/fixtures/sample_document.txt"
+      purpose: "Sample text document for testing"
+      lines_estimate: 50
+      content_type: "text"
+
+    - file: "tests/fixtures/test_questions.json"
+      purpose: "Test questions with expected patterns"
+      lines_estimate: 30
+      content_type: "json"
+
+  total_test_files: 15
+  total_lines_estimate: 1050
+
+# ============================================================================
+# CATEGORY 3: CONFIGURATION FILES (80% COMPLETE)
+# ============================================================================
+configuration:
+  status: "MOSTLY COMPLETE"
+  priority: "MEDIUM"
+
+  existing_files:
+    - "pyproject.toml" # ✓
+    - ".env.example"   # ✓
+    - "Makefile"       # ✓
+    - ".gitignore"     # ✓
+
+  missing_files:
+    - file: ".streamlit/config.toml"
+      purpose: "Streamlit UI configuration"
+      lines_estimate: 20
+      content: |
+        [server]
+        port = 8501
+        address = "0.0.0.0"
+        headless = true
+        runOnSave = true
+
+        [browser]
+        gatherUsageStats = false
+
+        [theme]
+        primaryColor = "#1f77b4"
+        backgroundColor = "#ffffff"
+        secondaryBackgroundColor = "#f0f2f6"
+        textColor = "#262730"
+        font = "sans serif"
+
+    - file: ".pre-commit-config.yaml"
+      purpose: "Pre-commit hooks configuration"
+      lines_estimate: 35
+      content: |
+        repos:
+          - repo: https://github.com/pre-commit/pre-commit-hooks
+            rev: v4.5.0
+            hooks:
+              - id: trailing-whitespace
+              - id: end-of-file-fixer
+              - id: check-yaml
+              - id: check-added-large-files
+
+          - repo: https://github.com/psf/black
+            rev: 24.1.0
+            hooks:
+              - id: black
+
+          - repo: https://github.com/astral-sh/ruff-pre-commit
+            rev: v0.1.9
+            hooks:
+              - id: ruff
+                args: [--fix]
+
+          - repo: https://github.com/pre-commit/mirrors-mypy
+            rev: v1.8.0
+            hooks:
+              - id: mypy
+                additional_dependencies: [pydantic>=2.0]
+
+  total_missing_config_files: 2
+  total_lines_estimate: 55
+
+# ============================================================================
+# CATEGORY 4: SCRIPTS (90% COMPLETE)
+# ============================================================================
+scripts:
+  status: "MOSTLY COMPLETE"
+  priority: "LOW"
+
+  existing_files:
+    - "scripts/setup-local-k8s.sh" # ✓
+
+  missing_files:
+    - file: "scripts/seed_data.py"
+      purpose: "Seed sample documents for testing"
+      lines_estimate: 50
+      description: "Creates sample PDF/TXT documents in data/documents/"
+
+    - file: "scripts/export_docs.py"
+      purpose: "Export chat history or answers"
+      lines_estimate: 40
+      description: "Optional utility script"
+
+  total_missing_script_files: 2
+  total_lines_estimate: 90
+
+# ============================================================================
+# CATEGORY 5: INFRASTRUCTURE (95% COMPLETE)
+# ============================================================================
+infrastructure:
+  status: "ALMOST COMPLETE"
+  priority: "LOW"
+
+  existing_files:
+    - "infrastructure/podman/Containerfile"         # ✓
+    - "infrastructure/podman/podman-compose.yaml"   # ✓
+    - "infrastructure/docker/Dockerfile"            # ✓
+    - "infrastructure/docker/docker-compose.yaml"   # ✓
+    - "infrastructure/multipass/cloud-init.yaml"    # ✓
+    - "infrastructure/kubernetes/base/*"            # ✓ (8 files)
+    - "infrastructure/terraform/*"                  # Needs verification
+
+  missing_files:
+    - file: "infrastructure/kubernetes/overlays/dev/kustomization.yaml"
+      purpose: "Dev environment overlay"
+      lines_estimate: 15
+      status: "May exist, needs verification"
+
+    - file: "infrastructure/kubernetes/overlays/prod/kustomization.yaml"
+      purpose: "Production environment overlay"
+      lines_estimate: 20
+
+    - file: "infrastructure/kubernetes/base/secrets.yaml"
+      purpose: "K8s secrets template (optional)"
+      lines_estimate: 15
+
+  notes:
+    - "Most infrastructure files exist"
+    - "May need minor adjustments after source code is created"
+    - "Service account and RBAC might be needed for production"
+
+# ============================================================================
+# CATEGORY 6: DOCUMENTATION (100% COMPLETE)
+# ============================================================================
+documentation:
+  status: "COMPLETE"
+  priority: "DONE"
+
+  existing_files:
+    - "README.md"
+    - "requirements.yaml"
+    - "docs/design/architecture.yaml"
+    - "docs/development/coding-standards.yaml"
+    - "docs/ai-agent-implementation-guide.yaml"
+    - "docs/ai-agent-implementation-guide-part2.yaml"
+    - "docs/ai-agent-implementation-guide-part3.yaml"
+    - "docs/infrastructure/local-k8s-setup.yaml"
+    - "docs/external-dependencies.yaml"
+    - "docs/naming-conventions.yaml"
+    - "docs/project-structure.yaml"
+    - "docs/implementation-gaps.yaml"  # This file
+
+  missing_files: []
+  notes: "All documentation is complete"
+
+# ============================================================================
+# IMPLEMENTATION ORDER (RECOMMENDED)
+# ============================================================================
+implementation_order:
+  description: |
+    Recommended order for an AI agent to implement the missing pieces.
+    Each phase builds on the previous one.
+
+  phase_1:
+    name: "Foundation"
+    priority: "CRITICAL"
+    files:
+      - "src/research_assistant/__init__.py"
+      - "src/research_assistant/py.typed"
+      - "src/research_assistant/config/__init__.py"
+      - "src/research_assistant/config/settings.py"
+      - "src/research_assistant/config/prompts.py"
+      - "src/research_assistant/core/__init__.py"
+      - "src/research_assistant/core/exceptions.py"
+      - "src/research_assistant/core/schemas.py"
+    verification: "python -c 'from research_assistant.config import Settings; print(Settings())'"
+
+  phase_2:
+    name: "Services"
+    priority: "CRITICAL"
+    files:
+      - "src/research_assistant/services/__init__.py"
+      - "src/research_assistant/services/embeddings.py"
+      - "src/research_assistant/services/vector_store.py"
+      - "src/research_assistant/services/document_service.py"
+      - "src/research_assistant/services/llm_service.py"
+    verification: "python -c 'from research_assistant.services import EmbeddingService; print(\"OK\")'"
+
+  phase_3:
+    name: "Tools"
+    priority: "HIGH"
+    files:
+      - "src/research_assistant/tools/__init__.py"
+      - "src/research_assistant/tools/search.py"
+      - "src/research_assistant/tools/document.py"
+    verification: "python -c 'from research_assistant.tools import vector_search; print(\"OK\")'"
+
+  phase_4:
+    name: "Agents"
+    priority: "CRITICAL"
+    files:
+      - "src/research_assistant/agents/__init__.py"
+      - "src/research_assistant/agents/base.py"
+      - "src/research_assistant/agents/researcher.py"
+      - "src/research_assistant/agents/writer.py"
+      - "src/research_assistant/agents/critic.py"
+      - "src/research_assistant/agents/supervisor.py"
+    verification: "python -c 'from research_assistant.agents import SupervisorAgent; print(\"OK\")'"
+
+  phase_5:
+    name: "Workflow"
+    priority: "CRITICAL"
+    files:
+      - "src/research_assistant/graph/__init__.py"
+      - "src/research_assistant/graph/state.py"
+      - "src/research_assistant/graph/nodes.py"
+      - "src/research_assistant/graph/workflow.py"
+    verification: "python -c 'from research_assistant.graph import ResearchGraph; print(\"OK\")'"
+
+  phase_6:
+    name: "User Interface"
+    priority: "HIGH"
+    files:
+      - "src/research_assistant/ui/__init__.py"
+      - "src/research_assistant/ui/components.py"
+      - "src/research_assistant/ui/app.py"
+      - "src/research_assistant/ui/pages/1_Chat.py"
+      - "src/research_assistant/ui/pages/2_Documents.py"
+      - "src/research_assistant/ui/pages/3_Settings.py"
+      - ".streamlit/config.toml"
+    verification: "streamlit run src/research_assistant/ui/app.py --server.headless true &; sleep 5; curl -s http://localhost:8501 > /dev/null && echo 'OK'"
+
+  phase_7:
+    name: "CLI"
+    priority: "MEDIUM"
+    files:
+      - "src/research_assistant/cli.py"
+    verification: "python -m research_assistant.cli --help"
+
+  phase_8:
+    name: "Tests"
+    priority: "HIGH"
+    files:
+      - "tests/__init__.py"
+      - "tests/conftest.py"
+      - "tests/unit/__init__.py"
+      - "tests/unit/test_settings.py"
+      - "tests/unit/test_schemas.py"
+      - "tests/unit/test_embeddings.py"
+      - "tests/unit/test_vector_store.py"
+      - "tests/unit/test_document_service.py"
+      - "tests/unit/test_agents.py"
+      - "tests/unit/test_workflow.py"
+      - "tests/integration/__init__.py"
+      - "tests/integration/test_rag_pipeline.py"
+      - "tests/integration/test_agent_workflow.py"
+      - "tests/fixtures/sample_document.txt"
+      - "tests/fixtures/test_questions.json"
+    verification: "pytest tests/ -v"
+
+  phase_9:
+    name: "Polish"
+    priority: "LOW"
+    files:
+      - ".pre-commit-config.yaml"
+      - "scripts/seed_data.py"
+    verification: "pre-commit run --all-files"
+
+# ============================================================================
+# FILE COUNT SUMMARY
+# ============================================================================
+file_count_summary:
+  source_code:
+    missing: 32
+    lines: 2400
+  tests:
+    missing: 15
+    lines: 1050
+  configuration:
+    missing: 2
+    lines: 55
+  scripts:
+    missing: 2
+    lines: 90
+  infrastructure:
+    missing: 2
+    lines: 50
+  documentation:
+    missing: 0
+    lines: 0
+
+  total:
+    files_missing: 53
+    lines_to_write: 3645
+
+# ============================================================================
+# QUICK START FOR AI IMPLEMENTATION
+# ============================================================================
+ai_implementation_guide:
+  description: |
+    Step-by-step guide for an AI agent to implement the project.
+
+  step_1:
+    action: "Read documentation"
+    files:
+      - "docs/project-structure.yaml"
+      - "docs/naming-conventions.yaml"
+      - "docs/external-dependencies.yaml"
+
+  step_2:
+    action: "Create directory structure"
+    command: |
+      mkdir -p src/research_assistant/{config,core,services,agents,tools,graph,ui/pages}
+      mkdir -p tests/{unit,integration,fixtures}
+      mkdir -p .streamlit
+
+  step_3:
+    action: "Implement Phase 1-5 (Core functionality)"
+    reference: "docs/ai-agent-implementation-guide.yaml"
+    reference2: "docs/ai-agent-implementation-guide-part2.yaml"
+
+  step_4:
+    action: "Implement Phase 6-7 (UI and CLI)"
+    reference: "docs/ai-agent-implementation-guide-part3.yaml"
+
+  step_5:
+    action: "Implement Phase 8 (Tests)"
+    reference: "docs/ai-agent-implementation-guide-part3.yaml#tests"
+
+  step_6:
+    action: "Verify implementation"
+    commands:
+      - "make install-dev"
+      - "make verify-all"
+      - "make lint"
+      - "make test"
+      - "make run"
+
+  step_7:
+    action: "Deploy"
+    commands:
+      - "make podman-build"
+      - "make podman-compose-up"
+      - "# OR for K8s:"
+      - "make local-k8s-setup"
+      - "make k8s-deploy"
+
+# ============================================================================
+# END OF IMPLEMENTATION GAPS DOCUMENT
+# ============================================================================
