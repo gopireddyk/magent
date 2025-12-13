@@ -1,0 +1,111 @@
+# ============================================================================
+# KUBERNETES STATEFULSET - ChromaDB Vector Database
+# ============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: chromadb
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: chromadb
+spec:
+  serviceName: chromadb
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: research-assistant
+      app.kubernetes.io/component: chromadb
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: research-assistant
+        app.kubernetes.io/component: chromadb
+    spec:
+      securityContext:
+        runAsNonRoot: false  # ChromaDB needs root for now
+        fsGroup: 1000
+
+      containers:
+        - name: chromadb
+          image: chromadb/chroma:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 8000
+              protocol: TCP
+
+          env:
+            - name: IS_PERSISTENT
+              value: "TRUE"
+            - name: PERSIST_DIRECTORY
+              value: "/chroma/chroma"
+            - name: ANONYMIZED_TELEMETRY
+              value: "FALSE"
+            - name: CHROMA_SERVER_HOST
+              value: "0.0.0.0"
+            - name: CHROMA_SERVER_HTTP_PORT
+              value: "8000"
+
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "2Gi"
+            limits:
+              cpu: "2000m"
+              memory: "4Gi"
+
+          volumeMounts:
+            - name: chroma-data
+              mountPath: /chroma/chroma
+
+          livenessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /api/v1/heartbeat
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+  volumeClaimTemplates:
+    - metadata:
+        name: chroma-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi
+
+---
+# ============================================================================
+# SERVICE - ChromaDB
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: chromadb-svc
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: chromadb
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: chromadb

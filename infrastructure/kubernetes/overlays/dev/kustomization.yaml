@@ -1,0 +1,79 @@
+# ============================================================================
+# KUSTOMIZATION - Development Environment Overlay
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: research-assistant-dev
+
+# Base configuration
+resources:
+  - ../../base
+
+# Development-specific labels
+commonLabels:
+  environment: development
+
+# Development-specific patches
+patches:
+  # Reduce replicas for development
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: research-assistant
+      spec:
+        replicas: 1
+
+  # Reduce resource limits for development
+  - patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: research-assistant
+      spec:
+        template:
+          spec:
+            containers:
+              - name: app
+                resources:
+                  requests:
+                    cpu: "250m"
+                    memory: "512Mi"
+                  limits:
+                    cpu: "1000m"
+                    memory: "2Gi"
+
+  # Reduce Ollama resources for development
+  - patch: |-
+      apiVersion: apps/v1
+      kind: StatefulSet
+      metadata:
+        name: ollama
+      spec:
+        template:
+          spec:
+            containers:
+              - name: ollama
+                resources:
+                  requests:
+                    cpu: "1000m"
+                    memory: "4Gi"
+                  limits:
+                    cpu: "2000m"
+                    memory: "8Gi"
+
+# ConfigMap overrides for development
+configMapGenerator:
+  - name: research-assistant-config
+    behavior: merge
+    literals:
+      - RESEARCH_LOG_LEVEL=DEBUG
+      - RESEARCH_DEBUG=true
+      - RESEARCH_ENVIRONMENT=development
+
+# Image configuration for development
+images:
+  - name: student-research-assistant
+    newTag: dev

@@ -1,0 +1,1062 @@
+# ============================================================================
+# AI AGENT IMPLEMENTATION GUIDE - PART 2
+# ============================================================================
+# Contains: Agent Implementations (Base, Researcher, Writer, Critic, Supervisor)
+# ============================================================================
+
+metadata:
+  document_type: "AI Agent Implementation Guide - Part 2"
+  version: "1.0.0"
+  continues_from: "ai-agent-implementation-guide.yaml"
+
+# ============================================================================
+# AGENT IMPLEMENTATIONS
+# ============================================================================
+file_implementations:
+
+  # --------------------------------------------------------------------------
+  # FILE 11: Base Agent
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/base.py"
+    description: "Base agent class for all agents"
+    content: |
+      """Base agent class."""
+
+      import logging
+      from abc import ABC, abstractmethod
+      from typing import Any
+
+      from research_assistant.services.llm_service import get_llm_service, LLMService
+
+      logger = logging.getLogger(__name__)
+
+
+      class BaseAgent(ABC):
+          """Abstract base class for all agents."""
+
+          def __init__(
+              self,
+              name: str,
+              system_prompt: str,
+              llm_service: LLMService | None = None,
+          ) -> None:
+              """Initialize the agent.
+
+              Args:
+                  name: Agent name for logging.
+                  system_prompt: System prompt for the agent.
+                  llm_service: Optional LLM service instance.
+              """
+              self.name = name
+              self.system_prompt = system_prompt
+              self.llm = llm_service or get_llm_service()
+              logger.info(f"Initialized agent: {self.name}")
+
+          @abstractmethod
+          def execute(self, **kwargs: Any) -> dict[str, Any]:
+              """Execute the agent's task.
+
+              Args:
+                  **kwargs: Task-specific arguments.
+
+              Returns:
+                  Dictionary with results.
+              """
+              pass
+
+          def _generate(self, prompt: str) -> str:
+              """Generate response using LLM.
+
+              Args:
+                  prompt: User prompt.
+
+              Returns:
+                  Generated response.
+              """
+              logger.debug(f"[{self.name}] Generating response...")
+              response = self.llm.generate(
+                  prompt=prompt,
+                  system_prompt=self.system_prompt,
+              )
+              logger.debug(f"[{self.name}] Response generated: {len(response)} chars")
+              return response
+
+          def __repr__(self) -> str:
+              return f"{self.__class__.__name__}(name='{self.name}')"
+
+    verification:
+      command: "python -c \"from research_assistant.agents.base import BaseAgent; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 12: Researcher Agent
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/researcher.py"
+    description: "Researcher agent for finding information"
+    content: |
+      """Researcher agent for information retrieval and extraction."""
+
+      import logging
+      from typing import Any
+
+      from research_assistant.agents.base import BaseAgent
+      from research_assistant.config.prompts import (
+          RESEARCHER_SYSTEM_PROMPT,
+          RESEARCHER_TASK_PROMPT,
+      )
+      from research_assistant.tools.search_tools import search_and_format
+      from research_assistant.models.schemas import RetrievedDocument
+
+      logger = logging.getLogger(__name__)
+
+
+      class ResearcherAgent(BaseAgent):
+          """Agent specialized in research and information retrieval."""
+
+          def __init__(self) -> None:
+              """Initialize the researcher agent."""
+              super().__init__(
+                  name="Researcher",
+                  system_prompt=RESEARCHER_SYSTEM_PROMPT,
+              )
+
+          def execute(
+              self,
+              question: str,
+              top_k: int = 5,
+              **kwargs: Any,
+          ) -> dict[str, Any]:
+              """Execute research task.
+
+              Args:
+                  question: Research question.
+                  top_k: Number of documents to retrieve.
+
+              Returns:
+                  Dictionary with research findings.
+              """
+              logger.info(f"[{self.name}] Researching: {question[:100]}...")
+
+              # Search for relevant documents
+              formatted_docs, raw_docs = search_and_format(
+                  query=question,
+                  top_k=top_k,
+                  include_scores=True,
+              )
+
+              if not raw_docs:
+                  logger.warning(f"[{self.name}] No documents found")
+                  return {
+                      "research_notes": "No relevant documents found in the knowledge base.",
+                      "documents_retrieved": 0,
+                      "sources": [],
+                  }
+
+              # Generate research notes
+              prompt = RESEARCHER_TASK_PROMPT.format(
+                  question=question,
+                  documents=formatted_docs,
+              )
+
+              research_notes = self._generate(prompt)
+
+              # Extract sources
+              sources = [
+                  {"source": doc.source, "page": doc.page, "score": doc.score}
+                  for doc in raw_docs
+              ]
+
+              logger.info(
+                  f"[{self.name}] Research complete: "
+                  f"{len(raw_docs)} documents, {len(research_notes)} chars"
+              )
+
+              return {
+                  "research_notes": research_notes,
+                  "documents_retrieved": len(raw_docs),
+                  "sources": sources,
+                  "raw_documents": raw_docs,
+              }
+
+    verification:
+      command: "python -c \"from research_assistant.agents.researcher import ResearcherAgent; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 13: Writer Agent
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/writer.py"
+    description: "Writer agent for synthesizing responses"
+    content: |
+      """Writer agent for synthesizing research into responses."""
+
+      import logging
+      from typing import Any
+
+      from research_assistant.agents.base import BaseAgent
+      from research_assistant.config.prompts import (
+          WRITER_SYSTEM_PROMPT,
+          WRITER_TASK_PROMPT,
+          WRITER_REVISION_INSTRUCTIONS,
+      )
+
+      logger = logging.getLogger(__name__)
+
+
+      class WriterAgent(BaseAgent):
+          """Agent specialized in writing and synthesis."""
+
+          def __init__(self) -> None:
+              """Initialize the writer agent."""
+              super().__init__(
+                  name="Writer",
+                  system_prompt=WRITER_SYSTEM_PROMPT,
+              )
+
+          def execute(
+              self,
+              question: str,
+              research_notes: str,
+              critique: str | None = None,
+              **kwargs: Any,
+          ) -> dict[str, Any]:
+              """Execute writing task.
+
+              Args:
+                  question: Original question.
+                  research_notes: Research findings from researcher.
+                  critique: Optional critique for revision.
+
+              Returns:
+                  Dictionary with draft answer.
+              """
+              is_revision = critique is not None
+              task_type = "revision" if is_revision else "initial draft"
+              logger.info(f"[{self.name}] Writing {task_type}...")
+
+              # Prepare revision instructions if needed
+              revision_instructions = ""
+              if critique:
+                  revision_instructions = WRITER_REVISION_INSTRUCTIONS.format(
+                      critique=critique
+                  )
+
+              # Generate the response
+              prompt = WRITER_TASK_PROMPT.format(
+                  question=question,
+                  research_notes=research_notes,
+                  revision_instructions=revision_instructions,
+              )
+
+              draft_answer = self._generate(prompt)
+
+              logger.info(
+                  f"[{self.name}] Draft complete: {len(draft_answer)} chars"
+              )
+
+              return {
+                  "draft_answer": draft_answer,
+                  "is_revision": is_revision,
+              }
+
+    verification:
+      command: "python -c \"from research_assistant.agents.writer import WriterAgent; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 14: Critic Agent
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/critic.py"
+    description: "Critic agent for quality review"
+    content: |
+      """Critic agent for reviewing and quality control."""
+
+      import logging
+      import re
+      from typing import Any
+
+      from research_assistant.agents.base import BaseAgent
+      from research_assistant.config.prompts import (
+          CRITIC_SYSTEM_PROMPT,
+          CRITIC_TASK_PROMPT,
+      )
+
+      logger = logging.getLogger(__name__)
+
+
+      class CriticAgent(BaseAgent):
+          """Agent specialized in review and critique."""
+
+          def __init__(self) -> None:
+              """Initialize the critic agent."""
+              super().__init__(
+                  name="Critic",
+                  system_prompt=CRITIC_SYSTEM_PROMPT,
+              )
+
+          def execute(
+              self,
+              question: str,
+              research_notes: str,
+              draft_answer: str,
+              **kwargs: Any,
+          ) -> dict[str, Any]:
+              """Execute critique task.
+
+              Args:
+                  question: Original question.
+                  research_notes: Research findings.
+                  draft_answer: Writer's draft to review.
+
+              Returns:
+                  Dictionary with critique results.
+              """
+              logger.info(f"[{self.name}] Reviewing draft...")
+
+              # Generate critique
+              prompt = CRITIC_TASK_PROMPT.format(
+                  question=question,
+                  research_notes=research_notes,
+                  draft_answer=draft_answer,
+              )
+
+              critique = self._generate(prompt)
+
+              # Parse verdict from critique
+              verdict = self._extract_verdict(critique)
+
+              logger.info(f"[{self.name}] Review complete: {verdict}")
+
+              return {
+                  "critique": critique,
+                  "verdict": verdict,
+                  "needs_revision": verdict == "NEEDS_REVISION",
+              }
+
+          def _extract_verdict(self, critique: str) -> str:
+              """Extract verdict from critique text.
+
+              Args:
+                  critique: Full critique text.
+
+              Returns:
+                  APPROVED or NEEDS_REVISION.
+              """
+              # Look for explicit verdict
+              critique_upper = critique.upper()
+
+              # Check for verdict patterns
+              if "VERDICT: APPROVED" in critique_upper or "## VERDICT\nAPPROVED" in critique_upper:
+                  return "APPROVED"
+              elif "VERDICT: NEEDS_REVISION" in critique_upper or "NEEDS REVISION" in critique_upper:
+                  return "NEEDS_REVISION"
+
+              # Fallback: look for keywords
+              if "APPROVED" in critique_upper and "NEEDS" not in critique_upper:
+                  return "APPROVED"
+
+              # Default to needs revision if unclear
+              return "NEEDS_REVISION"
+
+    verification:
+      command: "python -c \"from research_assistant.agents.critic import CriticAgent; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 15: Supervisor Agent
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/supervisor.py"
+    description: "Supervisor agent for workflow orchestration"
+    content: |
+      """Supervisor agent for orchestrating the workflow."""
+
+      import logging
+      from typing import Any, Literal
+
+      from research_assistant.agents.base import BaseAgent
+      from research_assistant.config.prompts import (
+          SUPERVISOR_SYSTEM_PROMPT,
+          SUPERVISOR_DECISION_PROMPT,
+      )
+      from research_assistant.config.settings import settings
+
+      logger = logging.getLogger(__name__)
+
+      AgentChoice = Literal["RESEARCHER", "WRITER", "CRITIC", "FINISH"]
+
+
+      class SupervisorAgent(BaseAgent):
+          """Agent that orchestrates the multi-agent workflow."""
+
+          VALID_CHOICES = {"RESEARCHER", "WRITER", "CRITIC", "FINISH"}
+
+          def __init__(self) -> None:
+              """Initialize the supervisor agent."""
+              super().__init__(
+                  name="Supervisor",
+                  system_prompt=SUPERVISOR_SYSTEM_PROMPT,
+              )
+
+          def execute(
+              self,
+              question: str,
+              has_research: bool = False,
+              has_draft: bool = False,
+              has_critique: bool = False,
+              critic_verdict: str = "",
+              revision_count: int = 0,
+              **kwargs: Any,
+          ) -> dict[str, Any]:
+              """Decide which agent should work next.
+
+              Args:
+                  question: Original question.
+                  has_research: Whether research has been done.
+                  has_draft: Whether a draft exists.
+                  has_critique: Whether critique has been done.
+                  critic_verdict: Latest critic verdict.
+                  revision_count: Number of revisions done.
+
+              Returns:
+                  Dictionary with next agent choice.
+              """
+              logger.info(f"[{self.name}] Deciding next step...")
+
+              # Rule-based routing (can use LLM for complex cases)
+              next_agent = self._rule_based_routing(
+                  has_research=has_research,
+                  has_draft=has_draft,
+                  has_critique=has_critique,
+                  critic_verdict=critic_verdict,
+                  revision_count=revision_count,
+              )
+
+              logger.info(f"[{self.name}] Decision: {next_agent}")
+
+              return {
+                  "next_agent": next_agent,
+                  "reasoning": self._get_reasoning(next_agent),
+              }
+
+          def _rule_based_routing(
+              self,
+              has_research: bool,
+              has_draft: bool,
+              has_critique: bool,
+              critic_verdict: str,
+              revision_count: int,
+          ) -> AgentChoice:
+              """Apply rule-based routing logic.
+
+              Args:
+                  has_research: Whether research exists.
+                  has_draft: Whether draft exists.
+                  has_critique: Whether critique exists.
+                  critic_verdict: Latest verdict.
+                  revision_count: Current revision count.
+
+              Returns:
+                  Next agent to execute.
+              """
+              max_revisions = settings.max_revisions
+
+              # Rule 1: No research yet -> RESEARCHER
+              if not has_research:
+                  return "RESEARCHER"
+
+              # Rule 2: Has research, no draft -> WRITER
+              if has_research and not has_draft:
+                  return "WRITER"
+
+              # Rule 3: Has draft, no critique -> CRITIC
+              if has_draft and not has_critique:
+                  return "CRITIC"
+
+              # Rule 4: Critic approved -> FINISH
+              if critic_verdict == "APPROVED":
+                  return "FINISH"
+
+              # Rule 5: Needs revision and under limit -> WRITER
+              if critic_verdict == "NEEDS_REVISION" and revision_count < max_revisions:
+                  return "WRITER"
+
+              # Rule 6: Max revisions reached -> FINISH
+              if revision_count >= max_revisions:
+                  return "FINISH"
+
+              # Default: FINISH
+              return "FINISH"
+
+          def _llm_based_routing(
+              self,
+              question: str,
+              has_research: bool,
+              has_draft: bool,
+              has_critique: bool,
+              critic_verdict: str,
+              revision_count: int,
+          ) -> AgentChoice:
+              """Use LLM for routing decisions (for complex cases).
+
+              Args:
+                  question: Original question.
+                  has_research: Whether research exists.
+                  has_draft: Whether draft exists.
+                  has_critique: Whether critique exists.
+                  critic_verdict: Latest verdict.
+                  revision_count: Current revision count.
+
+              Returns:
+                  Next agent to execute.
+              """
+              prompt = SUPERVISOR_DECISION_PROMPT.format(
+                  question=question,
+                  has_research=has_research,
+                  has_draft=has_draft,
+                  has_critique=has_critique,
+                  critic_verdict=critic_verdict or "N/A",
+                  revision_count=revision_count,
+                  max_revisions=settings.max_revisions,
+              )
+
+              response = self._generate(prompt).strip().upper()
+
+              # Extract agent choice from response
+              for choice in self.VALID_CHOICES:
+                  if choice in response:
+                      return choice
+
+              # Default fallback
+              return "FINISH"
+
+          def _get_reasoning(self, choice: AgentChoice) -> str:
+              """Get human-readable reasoning for the choice.
+
+              Args:
+                  choice: The agent choice made.
+
+              Returns:
+                  Reasoning string.
+              """
+              reasoning_map = {
+                  "RESEARCHER": "Need to gather information from documents",
+                  "WRITER": "Ready to synthesize research into response",
+                  "CRITIC": "Draft ready for quality review",
+                  "FINISH": "Task complete, returning final answer",
+              }
+              return reasoning_map.get(choice, "Decision made")
+
+    verification:
+      command: "python -c \"from research_assistant.agents.supervisor import SupervisorAgent; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 16: Agents Package Init
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/agents/__init__.py"
+    description: "Agents package exports"
+    content: |
+      """Agents package."""
+
+      from research_assistant.agents.base import BaseAgent
+      from research_assistant.agents.researcher import ResearcherAgent
+      from research_assistant.agents.writer import WriterAgent
+      from research_assistant.agents.critic import CriticAgent
+      from research_assistant.agents.supervisor import SupervisorAgent
+
+      __all__ = [
+          "BaseAgent",
+          "ResearcherAgent",
+          "WriterAgent",
+          "CriticAgent",
+          "SupervisorAgent",
+      ]
+
+    verification:
+      command: "python -c \"from research_assistant.agents import ResearcherAgent, WriterAgent, CriticAgent, SupervisorAgent; print('OK')\""
+      expected_output: "OK"
+
+# ============================================================================
+# LANGGRAPH WORKFLOW IMPLEMENTATIONS
+# ============================================================================
+
+  # --------------------------------------------------------------------------
+  # FILE 17: Graph State
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/graph/state.py"
+    description: "LangGraph state definition"
+    content: |
+      """LangGraph state definition for the research workflow."""
+
+      from typing import Annotated, Literal
+      from typing_extensions import TypedDict
+
+      from langgraph.graph.message import add_messages
+
+
+      class ResearchState(TypedDict, total=False):
+          """State schema for the research workflow.
+
+          This state is passed between all nodes in the graph.
+          """
+
+          # Input
+          question: str  # The user's research question
+
+          # Research phase
+          research_notes: str  # Output from researcher agent
+          documents_retrieved: int  # Number of documents found
+          sources: list[dict]  # Source information
+
+          # Writing phase
+          draft_answer: str  # Current draft from writer
+          revision_count: int  # Number of revisions made
+
+          # Review phase
+          critique: str  # Output from critic agent
+          critic_verdict: str  # APPROVED or NEEDS_REVISION
+
+          # Final output
+          final_answer: str  # The approved final answer
+
+          # Workflow control
+          next_agent: Literal["RESEARCHER", "WRITER", "CRITIC", "FINISH"]
+          iteration: int  # Current iteration count
+          error: str | None  # Any error message
+
+
+      def create_initial_state(question: str) -> ResearchState:
+          """Create the initial state for a new research task.
+
+          Args:
+              question: The user's research question.
+
+          Returns:
+              Initial state dictionary.
+          """
+          return ResearchState(
+              question=question,
+              research_notes="",
+              documents_retrieved=0,
+              sources=[],
+              draft_answer="",
+              revision_count=0,
+              critique="",
+              critic_verdict="",
+              final_answer="",
+              next_agent="RESEARCHER",
+              iteration=0,
+              error=None,
+          )
+
+    verification:
+      command: "python -c \"from research_assistant.graph.state import ResearchState, create_initial_state; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 18: Graph Nodes
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/graph/nodes.py"
+    description: "LangGraph node functions"
+    content: |
+      """LangGraph node functions for the research workflow."""
+
+      import logging
+      from typing import Any
+
+      from research_assistant.graph.state import ResearchState
+      from research_assistant.agents import (
+          SupervisorAgent,
+          ResearcherAgent,
+          WriterAgent,
+          CriticAgent,
+      )
+      from research_assistant.config.settings import settings
+
+      logger = logging.getLogger(__name__)
+
+      # Initialize agents (lazy loaded)
+      _supervisor: SupervisorAgent | None = None
+      _researcher: ResearcherAgent | None = None
+      _writer: WriterAgent | None = None
+      _critic: CriticAgent | None = None
+
+
+      def get_supervisor() -> SupervisorAgent:
+          global _supervisor
+          if _supervisor is None:
+              _supervisor = SupervisorAgent()
+          return _supervisor
+
+
+      def get_researcher() -> ResearcherAgent:
+          global _researcher
+          if _researcher is None:
+              _researcher = ResearcherAgent()
+          return _researcher
+
+
+      def get_writer() -> WriterAgent:
+          global _writer
+          if _writer is None:
+              _writer = WriterAgent()
+          return _writer
+
+
+      def get_critic() -> CriticAgent:
+          global _critic
+          if _critic is None:
+              _critic = CriticAgent()
+          return _critic
+
+
+      def supervisor_node(state: ResearchState) -> dict[str, Any]:
+          """Supervisor node - decides which agent to run next.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Updated state with next_agent decision.
+          """
+          logger.info("=== SUPERVISOR NODE ===")
+
+          supervisor = get_supervisor()
+
+          result = supervisor.execute(
+              question=state["question"],
+              has_research=bool(state.get("research_notes")),
+              has_draft=bool(state.get("draft_answer")),
+              has_critique=bool(state.get("critique")),
+              critic_verdict=state.get("critic_verdict", ""),
+              revision_count=state.get("revision_count", 0),
+          )
+
+          return {
+              "next_agent": result["next_agent"],
+              "iteration": state.get("iteration", 0) + 1,
+          }
+
+
+      def researcher_node(state: ResearchState) -> dict[str, Any]:
+          """Researcher node - retrieves and analyzes documents.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Updated state with research findings.
+          """
+          logger.info("=== RESEARCHER NODE ===")
+
+          researcher = get_researcher()
+
+          result = researcher.execute(
+              question=state["question"],
+              top_k=settings.retrieval_top_k,
+          )
+
+          return {
+              "research_notes": result["research_notes"],
+              "documents_retrieved": result["documents_retrieved"],
+              "sources": result["sources"],
+          }
+
+
+      def writer_node(state: ResearchState) -> dict[str, Any]:
+          """Writer node - creates or revises the response.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Updated state with draft answer.
+          """
+          logger.info("=== WRITER NODE ===")
+
+          writer = get_writer()
+
+          # Pass critique if this is a revision
+          critique = None
+          if state.get("critic_verdict") == "NEEDS_REVISION":
+              critique = state.get("critique")
+
+          result = writer.execute(
+              question=state["question"],
+              research_notes=state["research_notes"],
+              critique=critique,
+          )
+
+          # Increment revision count if this is a revision
+          revision_count = state.get("revision_count", 0)
+          if result.get("is_revision"):
+              revision_count += 1
+
+          return {
+              "draft_answer": result["draft_answer"],
+              "revision_count": revision_count,
+              # Reset critique after revision
+              "critique": "" if result.get("is_revision") else state.get("critique", ""),
+              "critic_verdict": "" if result.get("is_revision") else state.get("critic_verdict", ""),
+          }
+
+
+      def critic_node(state: ResearchState) -> dict[str, Any]:
+          """Critic node - reviews the draft response.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Updated state with critique.
+          """
+          logger.info("=== CRITIC NODE ===")
+
+          critic = get_critic()
+
+          result = critic.execute(
+              question=state["question"],
+              research_notes=state["research_notes"],
+              draft_answer=state["draft_answer"],
+          )
+
+          return {
+              "critique": result["critique"],
+              "critic_verdict": result["verdict"],
+          }
+
+
+      def finalize_node(state: ResearchState) -> dict[str, Any]:
+          """Finalize node - prepares the final answer.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Updated state with final answer.
+          """
+          logger.info("=== FINALIZE NODE ===")
+
+          # Use the current draft as the final answer
+          final_answer = state.get("draft_answer", "")
+
+          if not final_answer:
+              final_answer = "Unable to generate a response. Please try again."
+
+          return {
+              "final_answer": final_answer,
+          }
+
+
+      def route_from_supervisor(state: ResearchState) -> str:
+          """Route to the next node based on supervisor decision.
+
+          Args:
+              state: Current workflow state.
+
+          Returns:
+              Name of the next node.
+          """
+          next_agent = state.get("next_agent", "FINISH")
+
+          # Check iteration limit
+          if state.get("iteration", 0) >= settings.max_iterations:
+              logger.warning("Max iterations reached, finishing")
+              return "finalize"
+
+          route_map = {
+              "RESEARCHER": "researcher",
+              "WRITER": "writer",
+              "CRITIC": "critic",
+              "FINISH": "finalize",
+          }
+
+          return route_map.get(next_agent, "finalize")
+
+    verification:
+      command: "python -c \"from research_assistant.graph.nodes import supervisor_node, researcher_node, writer_node, critic_node; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 19: Graph Workflow
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/graph/workflow.py"
+    description: "LangGraph workflow definition"
+    dependencies:
+      - "langgraph>=0.2.0"
+    content: |
+      """LangGraph workflow for multi-agent research."""
+
+      import logging
+      from typing import Any
+
+      from langgraph.graph import StateGraph, END
+
+      from research_assistant.graph.state import ResearchState, create_initial_state
+      from research_assistant.graph.nodes import (
+          supervisor_node,
+          researcher_node,
+          writer_node,
+          critic_node,
+          finalize_node,
+          route_from_supervisor,
+      )
+
+      logger = logging.getLogger(__name__)
+
+
+      def create_research_workflow() -> StateGraph:
+          """Create the research workflow graph.
+
+          Returns:
+              Compiled StateGraph ready for execution.
+          """
+          logger.info("Creating research workflow graph...")
+
+          # Create the graph with our state schema
+          workflow = StateGraph(ResearchState)
+
+          # Add nodes
+          workflow.add_node("supervisor", supervisor_node)
+          workflow.add_node("researcher", researcher_node)
+          workflow.add_node("writer", writer_node)
+          workflow.add_node("critic", critic_node)
+          workflow.add_node("finalize", finalize_node)
+
+          # Set entry point
+          workflow.set_entry_point("supervisor")
+
+          # Add conditional edges from supervisor
+          workflow.add_conditional_edges(
+              "supervisor",
+              route_from_supervisor,
+              {
+                  "researcher": "researcher",
+                  "writer": "writer",
+                  "critic": "critic",
+                  "finalize": "finalize",
+              },
+          )
+
+          # Add edges back to supervisor after each agent
+          workflow.add_edge("researcher", "supervisor")
+          workflow.add_edge("writer", "supervisor")
+          workflow.add_edge("critic", "supervisor")
+
+          # Finalize goes to END
+          workflow.add_edge("finalize", END)
+
+          # Compile the graph
+          compiled = workflow.compile()
+          logger.info("Research workflow graph compiled successfully")
+
+          return compiled
+
+
+      class ResearchWorkflow:
+          """High-level interface for the research workflow."""
+
+          def __init__(self) -> None:
+              """Initialize the workflow."""
+              self._graph = None
+              logger.info("ResearchWorkflow initialized")
+
+          @property
+          def graph(self) -> StateGraph:
+              """Lazy load the compiled graph."""
+              if self._graph is None:
+                  self._graph = create_research_workflow()
+              return self._graph
+
+          def run(self, question: str) -> dict[str, Any]:
+              """Run the research workflow for a question.
+
+              Args:
+                  question: The research question.
+
+              Returns:
+                  Final state with the answer.
+              """
+              logger.info(f"Starting research workflow for: {question[:100]}...")
+
+              # Create initial state
+              initial_state = create_initial_state(question)
+
+              # Run the workflow
+              final_state = self.graph.invoke(initial_state)
+
+              logger.info("Research workflow completed")
+
+              return {
+                  "question": question,
+                  "answer": final_state.get("final_answer", ""),
+                  "sources": final_state.get("sources", []),
+                  "iterations": final_state.get("iteration", 0),
+                  "revisions": final_state.get("revision_count", 0),
+              }
+
+          def run_with_streaming(self, question: str):
+              """Run workflow with streaming updates.
+
+              Args:
+                  question: The research question.
+
+              Yields:
+                  State updates as they occur.
+              """
+              logger.info(f"Starting streaming workflow for: {question[:100]}...")
+
+              initial_state = create_initial_state(question)
+
+              for state_update in self.graph.stream(initial_state):
+                  yield state_update
+
+
+      # Global workflow instance
+      _workflow: ResearchWorkflow | None = None
+
+
+      def get_research_workflow() -> ResearchWorkflow:
+          """Get the global research workflow instance."""
+          global _workflow
+          if _workflow is None:
+              _workflow = ResearchWorkflow()
+          return _workflow
+
+    verification:
+      command: "python -c \"from research_assistant.graph.workflow import ResearchWorkflow; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 20: Graph Package Init
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/graph/__init__.py"
+    description: "Graph package exports"
+    content: |
+      """Graph package for LangGraph workflow."""
+
+      from research_assistant.graph.state import ResearchState, create_initial_state
+      from research_assistant.graph.workflow import (
+          ResearchWorkflow,
+          create_research_workflow,
+          get_research_workflow,
+      )
+
+      __all__ = [
+          "ResearchState",
+          "create_initial_state",
+          "ResearchWorkflow",
+          "create_research_workflow",
+          "get_research_workflow",
+      ]
+
+    verification:
+      command: "python -c \"from research_assistant.graph import ResearchWorkflow, get_research_workflow; print('OK')\""
+      expected_output: "OK"
+
+# ============================================================================
+# CONTINUATION
+# ============================================================================
+implementation_continuation:
+  message: "UI and CLI implementations continue in Part 3"
+  next_file: "ai-agent-implementation-guide-part3.yaml"

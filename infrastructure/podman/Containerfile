@@ -1,0 +1,94 @@
+# ============================================================================
+# CONTAINERFILE - Student Research Assistant (Podman Compatible)
+# ============================================================================
+# OCI-compliant container image (works with Podman and Docker)
+# Build: podman build -t research-assistant:latest -f Containerfile .
+# ============================================================================
+
+# ============================================================================
+# STAGE 1: Builder
+# ============================================================================
+FROM python:3.11-slim AS builder
+
+# Build arguments
+ARG DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create virtual environment
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Upgrade pip
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
+# Copy dependency files
+COPY pyproject.toml README.md ./
+
+# Install dependencies
+RUN pip install --no-cache-dir .
+
+# ============================================================================
+# STAGE 2: Production
+# ============================================================================
+FROM python:3.11-slim AS production
+
+# Labels (OCI standard)
+LABEL org.opencontainers.image.title="Student Research Assistant"
+LABEL org.opencontainers.image.description="Multi-Agent AI Research Application"
+LABEL org.opencontainers.image.version="1.0.0"
+LABEL org.opencontainers.image.vendor="Research Assistant"
+LABEL org.opencontainers.image.source="https://github.com/your-repo/research-assistant"
+
+# Environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PYTHONFAULTHANDLER=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PATH="/opt/venv/bin:$PATH"
+
+# Create non-root user (Podman best practice)
+RUN groupadd --gid 1000 appgroup && \
+    useradd --uid 1000 --gid appgroup --shell /bin/bash --create-home appuser
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get clean
+
+# Copy virtual environment from builder
+COPY --from=builder /opt/venv /opt/venv
+
+# Set working directory
+WORKDIR /app
+
+# Copy application code
+COPY --chown=appuser:appgroup src/ ./src/
+COPY --chown=appuser:appgroup config/ ./config/ 2>/dev/null || true
+
+# Create data directories with correct permissions
+RUN mkdir -p /app/data/documents /app/data/vectorstore && \
+    chown -R appuser:appgroup /app/data
+
+# Switch to non-root user
+USER appuser
+
+# Expose Streamlit port
+EXPOSE 8501
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8501/_stcore/health || exit 1
+
+# Default command
+CMD ["streamlit", "run", "src/research_assistant/ui/app.py", \
+     "--server.port=8501", \
+     "--server.address=0.0.0.0", \
+     "--server.headless=true"]

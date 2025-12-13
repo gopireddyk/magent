@@ -1,0 +1,202 @@
+# ============================================================================
+# DOCKER COMPOSE - Student Research Assistant
+# ============================================================================
+# Full stack deployment with all services
+# Usage: docker-compose up -d
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ==========================================================================
+  # Main Application - Research Assistant
+  # ==========================================================================
+  research-app:
+    build:
+      context: ../..
+      dockerfile: infrastructure/docker/Dockerfile
+      target: production
+    image: student-research-assistant:latest
+    container_name: research-assistant-app
+    restart: unless-stopped
+
+    ports:
+      - "8501:8501"
+
+    environment:
+      # LLM Configuration
+      - RESEARCH_OLLAMA_BASE_URL=http://ollama:11434
+      - RESEARCH_OLLAMA_MODEL=llama3.2
+      - RESEARCH_LLM_TEMPERATURE=0.7
+
+      # Vector Store
+      - RESEARCH_CHROMA_HOST=chromadb
+      - RESEARCH_CHROMA_PORT=8000
+
+      # Application
+      - RESEARCH_LOG_LEVEL=INFO
+      - RESEARCH_ENVIRONMENT=docker
+
+    volumes:
+      - documents_data:/app/data/documents
+      - app_config:/app/config
+
+    depends_on:
+      ollama:
+        condition: service_healthy
+      chromadb:
+        condition: service_healthy
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # Ollama - Local LLM Server
+  # ==========================================================================
+  ollama:
+    image: ollama/ollama:latest
+    container_name: research-assistant-ollama
+    restart: unless-stopped
+
+    ports:
+      - "11434:11434"
+
+    volumes:
+      - ollama_data:/root/.ollama
+
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+    # GPU support (uncomment for NVIDIA GPU)
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # Ollama Model Puller (init container)
+  # ==========================================================================
+  ollama-pull:
+    image: ollama/ollama:latest
+    container_name: research-assistant-ollama-pull
+    restart: "no"
+
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama to be ready..."
+        until curl -s http://ollama:11434/api/tags > /dev/null; do
+          sleep 2
+        done
+        echo "Pulling models..."
+        ollama pull llama3.2
+        ollama pull nomic-embed-text
+        echo "Models pulled successfully!"
+
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # ChromaDB - Vector Database
+  # ==========================================================================
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: research-assistant-chromadb
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - chroma_data:/chroma/chroma
+
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # Nginx Reverse Proxy (Production)
+  # ==========================================================================
+  nginx:
+    image: nginx:alpine
+    container_name: research-assistant-nginx
+    restart: unless-stopped
+    profiles:
+      - production
+
+    ports:
+      - "80:80"
+      - "443:443"
+
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+
+    depends_on:
+      - research-app
+
+    networks:
+      - research-network
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  documents_data:
+    driver: local
+    name: research-assistant-documents
+
+  ollama_data:
+    driver: local
+    name: research-assistant-ollama
+
+  chroma_data:
+    driver: local
+    name: research-assistant-chroma
+
+  app_config:
+    driver: local
+    name: research-assistant-config
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  research-network:
+    driver: bridge
+    name: research-assistant-network

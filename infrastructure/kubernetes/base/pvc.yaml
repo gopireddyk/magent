@@ -1,0 +1,23 @@
+# ============================================================================
+# KUBERNETES PERSISTENT VOLUME CLAIMS
+# ============================================================================
+
+# ============================================================================
+# PVC - Documents Storage
+# ============================================================================
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: documents-pvc
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 10Gi
+  # Uncomment to specify storage class
+  # storageClassName: standard

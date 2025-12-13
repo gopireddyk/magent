@@ -1,0 +1,658 @@
+# ============================================================================
+# CODING STANDARDS & DEVELOPMENT GUIDELINES
+# ============================================================================
+# Project: Student Research Assistant
+# Version: 1.0.0
+# ============================================================================
+
+metadata:
+  document_type: "Development Guidelines"
+  version: "1.0.0"
+  status: "Active"
+
+# ============================================================================
+# PYTHON CODING STANDARDS
+# ============================================================================
+python_standards:
+
+  style_guide:
+    base: "PEP 8"
+    formatter: "Black"
+    linter: "Ruff"
+    type_checker: "mypy"
+
+  formatting:
+    line_length: 88  # Black default
+    indent: 4  # spaces
+    quotes: "double"  # Prefer double quotes
+    trailing_commas: true
+
+  naming_conventions:
+    modules: "snake_case"
+    classes: "PascalCase"
+    functions: "snake_case"
+    variables: "snake_case"
+    constants: "UPPER_SNAKE_CASE"
+    private: "_leading_underscore"
+    protected: "_single_underscore"
+
+    examples:
+      good:
+        - "user_service.py"
+        - "class DocumentProcessor"
+        - "def process_document()"
+        - "max_retries = 3"
+        - "DEFAULT_CHUNK_SIZE = 1000"
+      bad:
+        - "userService.py"
+        - "class document_processor"
+        - "def ProcessDocument()"
+
+  imports:
+    order:
+      - "Standard library"
+      - "Third-party packages"
+      - "Local application imports"
+    style: "Absolute imports preferred"
+    organization: "Use isort with Black profile"
+
+    example: |
+      # Standard library
+      import os
+      from pathlib import Path
+      from typing import List, Optional
+
+      # Third-party
+      from langchain.chains import LLMChain
+      from langgraph.graph import StateGraph
+      import chromadb
+
+      # Local
+      from src.agents.researcher import ResearcherAgent
+      from src.config.settings import Settings
+
+  type_hints:
+    required: true
+    style: "Python 3.10+ syntax"
+
+    examples:
+      functions: |
+        def process_document(
+            file_path: Path,
+            chunk_size: int = 1000,
+            overlap: int = 200,
+        ) -> list[Document]:
+            """Process a document into chunks."""
+            ...
+
+      classes: |
+        class DocumentService:
+            def __init__(self, config: Settings) -> None:
+                self.config = config
+                self._cache: dict[str, Document] = {}
+
+      optional: |
+        def find_document(doc_id: str) -> Document | None:
+            """Return document or None if not found."""
+            ...
+
+  docstrings:
+    style: "Google style"
+    required_for:
+      - "All public modules"
+      - "All public classes"
+      - "All public functions/methods"
+      - "Complex private functions"
+
+    template: |
+      def function_name(param1: str, param2: int) -> ReturnType:
+          """Short description of function.
+
+          Longer description if needed. Explain what the function does,
+          not how it does it.
+
+          Args:
+              param1: Description of param1.
+              param2: Description of param2.
+
+          Returns:
+              Description of return value.
+
+          Raises:
+              ValueError: When param1 is empty.
+              FileNotFoundError: When file doesn't exist.
+
+          Example:
+              >>> result = function_name("test", 42)
+              >>> print(result)
+          """
+
+# ============================================================================
+# PROJECT STRUCTURE STANDARDS
+# ============================================================================
+project_structure:
+
+  source_layout:
+    style: "src layout"
+    rationale: "Prevents accidental imports from project root"
+
+    structure: |
+      student-research-assistant/
+      ├── src/
+      │   └── research_assistant/    # Main package
+      │       ├── __init__.py
+      │       ├── agents/
+      │       ├── services/
+      │       └── ...
+      ├── tests/
+      ├── docs/
+      └── pyproject.toml
+
+  module_organization:
+    principles:
+      - "One class per file (for complex classes)"
+      - "Related functions can share a file"
+      - "Keep modules focused and cohesive"
+      - "Maximum ~300 lines per file"
+
+    example_module: |
+      # src/research_assistant/services/document_service.py
+      """Document processing service."""
+
+      from __future__ import annotations
+
+      from pathlib import Path
+      from typing import TYPE_CHECKING
+
+      if TYPE_CHECKING:
+          from src.research_assistant.config import Settings
+
+      __all__ = ["DocumentService"]
+
+
+      class DocumentService:
+          """Handles document loading and processing."""
+
+          def __init__(self, settings: Settings) -> None:
+              ...
+
+# ============================================================================
+# ERROR HANDLING STANDARDS
+# ============================================================================
+error_handling:
+
+  principles:
+    - "Fail fast and explicitly"
+    - "Use specific exception types"
+    - "Don't silence errors without logging"
+    - "Provide meaningful error messages"
+
+  custom_exceptions:
+    location: "src/research_assistant/exceptions.py"
+
+    example: |
+      """Custom exceptions for Research Assistant."""
+
+
+      class ResearchAssistantError(Exception):
+          """Base exception for all application errors."""
+
+
+      class DocumentProcessingError(ResearchAssistantError):
+          """Error during document processing."""
+
+          def __init__(self, file_path: str, reason: str) -> None:
+              self.file_path = file_path
+              self.reason = reason
+              super().__init__(f"Failed to process {file_path}: {reason}")
+
+
+      class VectorStoreError(ResearchAssistantError):
+          """Error with vector store operations."""
+
+
+      class AgentExecutionError(ResearchAssistantError):
+          """Error during agent execution."""
+
+          def __init__(self, agent_name: str, reason: str) -> None:
+              self.agent_name = agent_name
+              super().__init__(f"Agent '{agent_name}' failed: {reason}")
+
+  patterns:
+    catching_exceptions: |
+      # Good: Catch specific exceptions
+      try:
+          document = load_document(file_path)
+      except FileNotFoundError:
+          logger.error(f"Document not found: {file_path}")
+          raise DocumentProcessingError(file_path, "File not found")
+      except PermissionError:
+          logger.error(f"Permission denied: {file_path}")
+          raise DocumentProcessingError(file_path, "Permission denied")
+
+      # Bad: Catching everything
+      try:
+          document = load_document(file_path)
+      except Exception as e:  # Too broad
+          print(f"Error: {e}")  # Should use logging
+
+    context_managers: |
+      # Use context managers for cleanup
+      from contextlib import contextmanager
+
+      @contextmanager
+      def temporary_collection(name: str):
+          """Create a temporary vector collection."""
+          collection = create_collection(name)
+          try:
+              yield collection
+          finally:
+              delete_collection(name)
+
+# ============================================================================
+# LOGGING STANDARDS
+# ============================================================================
+logging_standards:
+
+  framework: "Python logging module"
+  format: "Structured JSON in production"
+
+  configuration: |
+    # src/research_assistant/config/logging.py
+    import logging
+    import sys
+    from typing import Any
+
+    def setup_logging(level: str = "INFO", json_format: bool = False) -> None:
+        """Configure application logging."""
+        handlers: list[logging.Handler] = []
+
+        if json_format:
+            # Production: JSON format
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setFormatter(JsonFormatter())
+        else:
+            # Development: Colored console
+            handler = logging.StreamHandler(sys.stdout)
+            handler.setFormatter(
+                logging.Formatter(
+                    "%(asctime)s | %(levelname)-8s | %(name)s | %(message)s"
+                )
+            )
+
+        handlers.append(handler)
+
+        logging.basicConfig(
+            level=getattr(logging, level.upper()),
+            handlers=handlers,
+        )
+
+  usage_patterns:
+    module_logger: |
+      # At the top of each module
+      import logging
+
+      logger = logging.getLogger(__name__)
+
+    log_levels: |
+      # DEBUG: Detailed info for debugging
+      logger.debug(f"Processing chunk {i}/{total_chunks}")
+
+      # INFO: Normal operations
+      logger.info(f"Document loaded: {file_path}")
+
+      # WARNING: Something unexpected but recoverable
+      logger.warning(f"Chunk size exceeds limit, truncating")
+
+      # ERROR: Operation failed
+      logger.error(f"Failed to process document: {error}")
+
+      # Use extra for structured data
+      logger.info(
+          "Query processed",
+          extra={
+              "query_id": query_id,
+              "duration_ms": duration,
+              "documents_retrieved": len(docs),
+          }
+      )
+
+# ============================================================================
+# TESTING STANDARDS
+# ============================================================================
+testing_standards:
+
+  framework: "pytest"
+  coverage_target: 80
+
+  structure: |
+    tests/
+    ├── conftest.py           # Shared fixtures
+    ├── unit/                  # Unit tests
+    │   ├── test_agents/
+    │   ├── test_services/
+    │   └── test_utils/
+    ├── integration/           # Integration tests
+    │   ├── test_workflow.py
+    │   └── test_vectorstore.py
+    └── fixtures/              # Test data
+        ├── sample.pdf
+        └── test_queries.json
+
+  naming:
+    test_files: "test_*.py"
+    test_functions: "test_<what>_<condition>_<expected>"
+
+    examples:
+      - "test_document_loader_with_valid_pdf_returns_chunks"
+      - "test_researcher_agent_with_empty_query_raises_error"
+      - "test_vector_search_returns_top_k_results"
+
+  patterns:
+    basic_test: |
+      # tests/unit/test_services/test_document_service.py
+      import pytest
+      from src.research_assistant.services import DocumentService
+
+
+      class TestDocumentService:
+          """Tests for DocumentService."""
+
+          def test_load_pdf_with_valid_file_returns_chunks(
+              self, sample_pdf: Path, settings: Settings
+          ) -> None:
+              """Test that valid PDF is loaded and chunked."""
+              service = DocumentService(settings)
+
+              chunks = service.load_document(sample_pdf)
+
+              assert len(chunks) > 0
+              assert all(chunk.content for chunk in chunks)
+
+          def test_load_pdf_with_missing_file_raises_error(
+              self, settings: Settings
+          ) -> None:
+              """Test that missing file raises appropriate error."""
+              service = DocumentService(settings)
+
+              with pytest.raises(DocumentProcessingError) as exc_info:
+                  service.load_document(Path("/nonexistent.pdf"))
+
+              assert "File not found" in str(exc_info.value)
+
+    fixtures: |
+      # tests/conftest.py
+      import pytest
+      from pathlib import Path
+      from src.research_assistant.config import Settings
+
+
+      @pytest.fixture
+      def settings() -> Settings:
+          """Provide test settings."""
+          return Settings(
+              chunk_size=500,
+              chunk_overlap=100,
+              ollama_model="llama3.2",
+          )
+
+
+      @pytest.fixture
+      def sample_pdf(tmp_path: Path) -> Path:
+          """Create a sample PDF for testing."""
+          # Create or copy test PDF
+          pdf_path = tmp_path / "sample.pdf"
+          # ... create test PDF
+          return pdf_path
+
+
+      @pytest.fixture
+      def mock_llm(mocker):
+          """Mock LLM responses for testing."""
+          mock = mocker.patch("src.research_assistant.services.llm.Ollama")
+          mock.return_value.invoke.return_value = "Mocked response"
+          return mock
+
+    async_tests: |
+      import pytest
+
+
+      @pytest.mark.asyncio
+      async def test_async_document_processing(
+          document_service: DocumentService,
+      ) -> None:
+          """Test async document processing."""
+          result = await document_service.process_async(document)
+          assert result.status == "completed"
+
+  mocking_guidelines:
+    - "Mock external services (LLM, file system)"
+    - "Don't mock the code under test"
+    - "Use fixtures for reusable mocks"
+    - "Verify mock interactions when relevant"
+
+# ============================================================================
+# GIT WORKFLOW
+# ============================================================================
+git_workflow:
+
+  branching_strategy: "GitHub Flow"
+
+  branches:
+    main:
+      description: "Production-ready code"
+      protection:
+        - "Require PR reviews"
+        - "Require CI to pass"
+        - "No direct pushes"
+
+    feature:
+      pattern: "feature/<issue-number>-<short-description>"
+      example: "feature/42-add-critic-agent"
+
+    bugfix:
+      pattern: "bugfix/<issue-number>-<short-description>"
+      example: "bugfix/56-fix-pdf-parsing"
+
+    docs:
+      pattern: "docs/<description>"
+      example: "docs/update-readme"
+
+  commit_messages:
+    format: "Conventional Commits"
+
+    types:
+      - "feat: New feature"
+      - "fix: Bug fix"
+      - "docs: Documentation"
+      - "style: Formatting"
+      - "refactor: Code restructuring"
+      - "test: Adding tests"
+      - "chore: Maintenance"
+
+    examples:
+      - "feat(agents): add critic agent implementation"
+      - "fix(vectorstore): handle empty query results"
+      - "docs(readme): add setup instructions"
+      - "test(researcher): add unit tests for search"
+      - "refactor(services): extract common base class"
+
+    template: |
+      <type>(<scope>): <short description>
+
+      <body - what and why>
+
+      <footer - breaking changes, issue references>
+
+  pull_requests:
+    template: |
+      ## Description
+      Brief description of changes
+
+      ## Type of Change
+      - [ ] Bug fix
+      - [ ] New feature
+      - [ ] Breaking change
+      - [ ] Documentation
+
+      ## Testing
+      - [ ] Unit tests added/updated
+      - [ ] Integration tests added/updated
+      - [ ] Manual testing performed
+
+      ## Checklist
+      - [ ] Code follows style guidelines
+      - [ ] Self-review completed
+      - [ ] Documentation updated
+      - [ ] No new warnings
+
+    review_process:
+      - "At least 1 approval required"
+      - "All comments addressed"
+      - "CI passing"
+      - "Branch up to date with main"
+
+# ============================================================================
+# CONFIGURATION MANAGEMENT
+# ============================================================================
+configuration_management:
+
+  principles:
+    - "Configuration separate from code"
+    - "Environment-specific values in env vars"
+    - "Sensible defaults in code"
+    - "Validation at startup"
+
+  pattern: |
+    # src/research_assistant/config/settings.py
+    from pydantic_settings import BaseSettings
+    from pydantic import Field
+
+
+    class Settings(BaseSettings):
+        """Application settings with validation."""
+
+        # LLM Configuration
+        ollama_base_url: str = Field(
+            default="http://localhost:11434",
+            description="Ollama API base URL",
+        )
+        ollama_model: str = Field(
+            default="llama3.2",
+            description="Default LLM model",
+        )
+        llm_temperature: float = Field(
+            default=0.7,
+            ge=0.0,
+            le=2.0,
+            description="LLM temperature",
+        )
+
+        # Document Processing
+        chunk_size: int = Field(
+            default=1000,
+            ge=100,
+            le=4000,
+            description="Document chunk size",
+        )
+        chunk_overlap: int = Field(
+            default=200,
+            ge=0,
+            description="Chunk overlap",
+        )
+
+        # Vector Store
+        chroma_persist_dir: str = Field(
+            default="./data/vectorstore",
+            description="ChromaDB storage directory",
+        )
+
+        # Agent Configuration
+        max_iterations: int = Field(
+            default=5,
+            ge=1,
+            le=10,
+            description="Maximum agent iterations",
+        )
+
+        model_config = {
+            "env_prefix": "RESEARCH_",
+            "env_file": ".env",
+            "extra": "ignore",
+        }
+
+  environment_files:
+    development: |
+      # .env.development
+      RESEARCH_OLLAMA_MODEL=llama3.2
+      RESEARCH_LLM_TEMPERATURE=0.7
+      RESEARCH_LOG_LEVEL=DEBUG
+
+    production: |
+      # .env.production
+      RESEARCH_OLLAMA_MODEL=llama3.2
+      RESEARCH_LLM_TEMPERATURE=0.5
+      RESEARCH_LOG_LEVEL=INFO
+
+# ============================================================================
+# DEPENDENCY MANAGEMENT
+# ============================================================================
+dependency_management:
+
+  tool: "pip with pyproject.toml"
+  lockfile: "requirements.txt (generated)"
+
+  principles:
+    - "Pin major versions for stability"
+    - "Separate dev dependencies"
+    - "Regular security updates"
+    - "Document why each dependency is needed"
+
+  update_process:
+    frequency: "Monthly"
+    steps:
+      - "Review changelogs for breaking changes"
+      - "Update in development branch"
+      - "Run full test suite"
+      - "Test manually in staging"
+      - "Merge to main"
+
+# ============================================================================
+# CODE REVIEW CHECKLIST
+# ============================================================================
+code_review_checklist:
+
+  functionality:
+    - "Does the code do what it's supposed to do?"
+    - "Are edge cases handled?"
+    - "Is error handling appropriate?"
+
+  code_quality:
+    - "Is the code readable and well-organized?"
+    - "Are names meaningful and consistent?"
+    - "Is there unnecessary duplication?"
+    - "Are functions/methods appropriately sized?"
+
+  type_safety:
+    - "Are type hints present and correct?"
+    - "Does mypy pass without errors?"
+
+  testing:
+    - "Are there adequate tests?"
+    - "Do tests cover edge cases?"
+    - "Are tests readable and maintainable?"
+
+  documentation:
+    - "Are public APIs documented?"
+    - "Are complex algorithms explained?"
+    - "Is the README updated if needed?"
+
+  security:
+    - "Is user input validated?"
+    - "Are there no hardcoded secrets?"
+    - "Are dependencies up to date?"
+
+  performance:
+    - "Are there obvious performance issues?"
+    - "Is caching used appropriately?"
+    - "Are database queries efficient?"

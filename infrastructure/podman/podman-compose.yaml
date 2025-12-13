@@ -1,0 +1,166 @@
+# ============================================================================
+# PODMAN COMPOSE - Student Research Assistant
+# ============================================================================
+# Full stack deployment with Podman
+# Usage: podman-compose up -d
+# ============================================================================
+
+version: "3.9"
+
+services:
+  # ==========================================================================
+  # Main Application - Research Assistant
+  # ==========================================================================
+  research-app:
+    build:
+      context: ../..
+      dockerfile: infrastructure/podman/Containerfile
+    image: localhost/research-assistant:latest
+    container_name: research-assistant-app
+
+    ports:
+      - "8501:8501"
+
+    environment:
+      # LLM Configuration
+      - RESEARCH_OLLAMA_BASE_URL=http://ollama:11434
+      - RESEARCH_OLLAMA_MODEL=llama3.2
+      - RESEARCH_LLM_TEMPERATURE=0.7
+
+      # Vector Store
+      - RESEARCH_CHROMA_HOST=chromadb
+      - RESEARCH_CHROMA_PORT=8000
+
+      # Application
+      - RESEARCH_LOG_LEVEL=INFO
+      - RESEARCH_ENVIRONMENT=podman
+
+    volumes:
+      - documents_data:/app/data/documents:Z
+      - app_config:/app/config:Z
+
+    depends_on:
+      - ollama
+      - chromadb
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - research-network
+
+    # Podman-specific: Run as non-root
+    userns_mode: keep-id
+
+  # ==========================================================================
+  # Ollama - Local LLM Server
+  # ==========================================================================
+  ollama:
+    image: docker.io/ollama/ollama:latest
+    container_name: research-assistant-ollama
+
+    ports:
+      - "11434:11434"
+
+    volumes:
+      - ollama_data:/root/.ollama:Z
+
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+    # GPU support for Podman (NVIDIA)
+    # Uncomment if you have NVIDIA GPU and nvidia-container-toolkit
+    # devices:
+    #   - nvidia.com/gpu=all
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # ChromaDB - Vector Database
+  # ==========================================================================
+  chromadb:
+    image: docker.io/chromadb/chroma:latest
+    container_name: research-assistant-chromadb
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      - chroma_data:/chroma/chroma:Z
+
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+    networks:
+      - research-network
+
+  # ==========================================================================
+  # Ollama Model Initialization (runs once)
+  # ==========================================================================
+  ollama-init:
+    image: docker.io/curlimages/curl:latest
+    container_name: research-assistant-ollama-init
+
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo "Waiting for Ollama..."
+        sleep 10
+        echo "Pulling llama3.2..."
+        curl -X POST http://ollama:11434/api/pull -d '{"name": "llama3.2"}'
+        echo "Pulling nomic-embed-text..."
+        curl -X POST http://ollama:11434/api/pull -d '{"name": "nomic-embed-text"}'
+        echo "Models ready!"
+
+    networks:
+      - research-network
+
+    restart: "no"
+
+# ============================================================================
+# VOLUMES
+# ============================================================================
+volumes:
+  documents_data:
+    driver: local
+
+  ollama_data:
+    driver: local
+
+  chroma_data:
+    driver: local
+
+  app_config:
+    driver: local
+
+# ============================================================================
+# NETWORKS
+# ============================================================================
+networks:
+  research-network:
+    driver: bridge

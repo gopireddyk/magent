@@ -1,0 +1,1300 @@
+# ============================================================================
+# MULTI-AGENT RESEARCH ASSISTANT - PROJECT REQUIREMENTS DOCUMENT
+# ============================================================================
+# Project: Student Research Assistant
+# Version: 1.0.0
+# Purpose: AI-powered research assistant for students using multi-agent orchestration
+# Technology: LangChain, LangGraph, Vector Database, Python
+# ============================================================================
+
+project:
+  name: "Student Research Assistant"
+  description: |
+    A local AI-powered multi-agent research assistant designed to help students
+    research, analyze, and understand academic documents. The system uses multiple
+    specialized AI agents working together to provide comprehensive, well-cited
+    research answers.
+  version: "1.0.0"
+  type: "Research AI Application"
+  license: "MIT"
+
+# ============================================================================
+# USE CASE DEFINITION
+# ============================================================================
+use_case:
+  primary_user: "Students and Researchers"
+  scenario: "Academic Research and Thesis Writing"
+
+  user_stories:
+    - id: "US-001"
+      as_a: "Student"
+      i_want: "To upload multiple research papers (PDFs)"
+      so_that: "I can build a searchable knowledge base for my thesis"
+      acceptance_criteria:
+        - "System accepts PDF files up to 50MB"
+        - "System processes and chunks documents automatically"
+        - "User receives confirmation of successful upload"
+        - "Documents are stored persistently"
+
+    - id: "US-002"
+      as_a: "Student"
+      i_want: "To ask questions about my uploaded documents"
+      so_that: "I can find relevant information quickly"
+      acceptance_criteria:
+        - "System understands natural language questions"
+        - "System retrieves relevant passages from documents"
+        - "Response time is under 30 seconds"
+        - "Answers include source citations"
+
+    - id: "US-003"
+      as_a: "Student"
+      i_want: "To get comprehensive answers with citations"
+      so_that: "I can use the information in my academic work"
+      acceptance_criteria:
+        - "Each claim is linked to source document"
+        - "Citations include document name and page/section"
+        - "Answers are well-structured and coherent"
+        - "Sources can be verified easily"
+
+    - id: "US-004"
+      as_a: "Student"
+      i_want: "To compare information across multiple documents"
+      so_that: "I can understand different perspectives on a topic"
+      acceptance_criteria:
+        - "System can synthesize from multiple sources"
+        - "Comparison is presented clearly"
+        - "Conflicting information is highlighted"
+        - "All sources are properly attributed"
+
+    - id: "US-005"
+      as_a: "Student"
+      i_want: "To have follow-up conversations"
+      so_that: "I can dive deeper into topics"
+      acceptance_criteria:
+        - "System remembers conversation context"
+        - "Follow-up questions work naturally"
+        - "Previous answers can be referenced"
+        - "Session history is maintained"
+
+    - id: "US-006"
+      as_a: "Student"
+      i_want: "My research data to remain private"
+      so_that: "I can work with confidential or unpublished research"
+      acceptance_criteria:
+        - "All processing happens locally"
+        - "No data is sent to external servers"
+        - "Documents are stored securely on local machine"
+        - "System works offline"
+
+# ============================================================================
+# FUNCTIONAL REQUIREMENTS
+# ============================================================================
+functional_requirements:
+
+  # Document Management
+  document_management:
+    - id: "FR-DM-001"
+      title: "PDF Document Upload"
+      description: "System shall accept PDF documents for processing"
+      priority: "HIGH"
+      details:
+        - "Support PDF files up to 50MB"
+        - "Handle multi-page documents"
+        - "Extract text content accurately"
+        - "Handle scanned PDFs with OCR (optional enhancement)"
+
+    - id: "FR-DM-002"
+      title: "Text File Upload"
+      description: "System shall accept plain text and markdown files"
+      priority: "MEDIUM"
+      details:
+        - "Support .txt, .md file formats"
+        - "Preserve formatting where applicable"
+        - "Handle various text encodings (UTF-8, ASCII)"
+
+    - id: "FR-DM-003"
+      title: "Document Chunking"
+      description: "System shall split documents into processable chunks"
+      priority: "HIGH"
+      details:
+        - "Chunk size: 500-1000 tokens"
+        - "Chunk overlap: 100-200 tokens"
+        - "Preserve paragraph boundaries"
+        - "Maintain section context"
+
+    - id: "FR-DM-004"
+      title: "Document Metadata"
+      description: "System shall extract and store document metadata"
+      priority: "MEDIUM"
+      details:
+        - "Store filename, upload date"
+        - "Extract title, author if available"
+        - "Track page numbers for citations"
+        - "Allow user-defined tags"
+
+    - id: "FR-DM-005"
+      title: "Document Deletion"
+      description: "System shall allow users to remove documents"
+      priority: "MEDIUM"
+      details:
+        - "Remove document from vector store"
+        - "Clean up associated embeddings"
+        - "Confirm deletion to user"
+
+  # Vector Database Operations
+  vector_database:
+    - id: "FR-VD-001"
+      title: "Embedding Generation"
+      description: "System shall generate embeddings for document chunks"
+      priority: "HIGH"
+      details:
+        - "Use local embedding model"
+        - "Generate 384-dimensional vectors (or model default)"
+        - "Process in batches for efficiency"
+        - "Handle embedding failures gracefully"
+
+    - id: "FR-VD-002"
+      title: "Vector Storage"
+      description: "System shall store embeddings in persistent vector database"
+      priority: "HIGH"
+      details:
+        - "Use ChromaDB for storage"
+        - "Persist data between sessions"
+        - "Support collection management"
+        - "Enable metadata filtering"
+
+    - id: "FR-VD-003"
+      title: "Similarity Search"
+      description: "System shall perform semantic similarity search"
+      priority: "HIGH"
+      details:
+        - "Return top-k most relevant chunks"
+        - "Configurable k value (default: 5)"
+        - "Include similarity scores"
+        - "Support metadata filtering"
+
+    - id: "FR-VD-004"
+      title: "Hybrid Search"
+      description: "System shall support keyword + semantic search"
+      priority: "LOW"
+      details:
+        - "Combine BM25 with vector search"
+        - "Configurable weighting"
+        - "Improve recall for specific terms"
+
+  # Agent System
+  agent_system:
+    - id: "FR-AG-001"
+      title: "Supervisor Agent"
+      description: "Orchestrator agent to manage workflow"
+      priority: "HIGH"
+      details:
+        - "Receive and parse user queries"
+        - "Determine which agent to invoke next"
+        - "Monitor task completion"
+        - "Decide when to return final answer"
+        - "Handle agent failures gracefully"
+      capabilities:
+        - "Route to Researcher, Writer, or Critic"
+        - "Track workflow state"
+        - "Limit maximum iterations"
+        - "Aggregate agent outputs"
+
+    - id: "FR-AG-002"
+      title: "Researcher Agent"
+      description: "Agent specialized in information retrieval"
+      priority: "HIGH"
+      details:
+        - "Query vector database"
+        - "Extract relevant facts"
+        - "Rank sources by relevance"
+        - "Identify information gaps"
+      tools:
+        - name: "vector_search"
+          description: "Search the vector database"
+        - name: "extract_facts"
+          description: "Extract key facts from passages"
+        - name: "rank_sources"
+          description: "Rank sources by relevance"
+
+    - id: "FR-AG-003"
+      title: "Writer Agent"
+      description: "Agent specialized in content synthesis"
+      priority: "HIGH"
+      details:
+        - "Synthesize information from sources"
+        - "Create coherent, structured responses"
+        - "Add proper citations"
+        - "Format output appropriately"
+      tools:
+        - name: "synthesize"
+          description: "Combine information from multiple sources"
+        - name: "format_response"
+          description: "Structure the response"
+        - name: "add_citations"
+          description: "Add citations to claims"
+
+    - id: "FR-AG-004"
+      title: "Critic Agent"
+      description: "Agent specialized in quality review"
+      priority: "HIGH"
+      details:
+        - "Verify factual accuracy"
+        - "Check citation correctness"
+        - "Identify gaps or weaknesses"
+        - "Suggest improvements"
+      tools:
+        - name: "fact_check"
+          description: "Verify claims against sources"
+        - name: "review_citations"
+          description: "Validate citation accuracy"
+        - name: "identify_gaps"
+          description: "Find missing information"
+
+  # LangGraph Workflow
+  langgraph_workflow:
+    - id: "FR-LG-001"
+      title: "State Management"
+      description: "System shall maintain shared state across agents"
+      priority: "HIGH"
+      state_schema:
+        question: "string - User's original question"
+        documents: "list - Retrieved source documents"
+        research_notes: "string - Researcher's findings"
+        draft_answer: "string - Writer's draft response"
+        critique: "string - Critic's feedback"
+        revision_count: "integer - Number of revisions"
+        final_answer: "string - Approved final response"
+        sources: "list - All citations used"
+        next_agent: "string - Next agent to execute"
+        status: "string - Current workflow status"
+
+    - id: "FR-LG-002"
+      title: "Conditional Routing"
+      description: "System shall route to agents based on conditions"
+      priority: "HIGH"
+      routing_rules:
+        - condition: "New question received"
+          route_to: "researcher"
+        - condition: "Research complete"
+          route_to: "writer"
+        - condition: "Draft complete"
+          route_to: "critic"
+        - condition: "Critique requires revision AND revision_count < 3"
+          route_to: "writer"
+        - condition: "Critique approved OR revision_count >= 3"
+          route_to: "end"
+
+    - id: "FR-LG-003"
+      title: "Workflow Execution"
+      description: "System shall execute the agent workflow"
+      priority: "HIGH"
+      details:
+        - "Execute agents in determined order"
+        - "Pass state between agents"
+        - "Handle agent errors"
+        - "Support workflow interruption"
+        - "Maximum 5 iterations to prevent infinite loops"
+
+  # Query Processing
+  query_processing:
+    - id: "FR-QP-001"
+      title: "Natural Language Understanding"
+      description: "System shall understand natural language queries"
+      priority: "HIGH"
+      details:
+        - "Parse user questions"
+        - "Identify query intent"
+        - "Extract key entities and concepts"
+        - "Handle ambiguous queries"
+
+    - id: "FR-QP-002"
+      title: "Query Expansion"
+      description: "System shall expand queries for better retrieval"
+      priority: "MEDIUM"
+      details:
+        - "Generate related terms"
+        - "Include synonyms"
+        - "Consider academic terminology"
+
+    - id: "FR-QP-003"
+      title: "Conversation Context"
+      description: "System shall maintain conversation history"
+      priority: "HIGH"
+      details:
+        - "Store previous Q&A pairs"
+        - "Resolve pronouns and references"
+        - "Support follow-up questions"
+        - "Maintain session context"
+
+  # Response Generation
+  response_generation:
+    - id: "FR-RG-001"
+      title: "Structured Responses"
+      description: "System shall generate well-structured responses"
+      priority: "HIGH"
+      format:
+        - "Clear introduction"
+        - "Organized main points"
+        - "Supporting evidence with citations"
+        - "Conclusion or summary"
+
+    - id: "FR-RG-002"
+      title: "Citation Format"
+      description: "System shall format citations consistently"
+      priority: "HIGH"
+      format:
+        style: "Inline citations with source list"
+        example: "[1] Document Name, Page X"
+        details:
+          - "Number citations sequentially"
+          - "Include source document name"
+          - "Include page/section reference"
+          - "Provide full source list at end"
+
+    - id: "FR-RG-003"
+      title: "Confidence Indication"
+      description: "System shall indicate confidence in responses"
+      priority: "LOW"
+      details:
+        - "Flag low-confidence answers"
+        - "Indicate when sources are limited"
+        - "Suggest additional research if needed"
+
+  # User Interface
+  user_interface:
+    - id: "FR-UI-001"
+      title: "Document Upload Interface"
+      description: "UI for uploading documents"
+      priority: "HIGH"
+      components:
+        - "File upload widget (drag & drop)"
+        - "Upload progress indicator"
+        - "Success/error notifications"
+        - "List of uploaded documents"
+
+    - id: "FR-UI-002"
+      title: "Chat Interface"
+      description: "UI for asking questions"
+      priority: "HIGH"
+      components:
+        - "Text input for questions"
+        - "Chat history display"
+        - "Response with formatting"
+        - "Source citations display"
+
+    - id: "FR-UI-003"
+      title: "Agent Activity Display"
+      description: "UI showing agent workflow"
+      priority: "MEDIUM"
+      components:
+        - "Current agent indicator"
+        - "Workflow progress visualization"
+        - "Agent reasoning display (optional)"
+
+    - id: "FR-UI-004"
+      title: "Document Management Interface"
+      description: "UI for managing documents"
+      priority: "MEDIUM"
+      components:
+        - "List all documents"
+        - "Delete documents"
+        - "View document metadata"
+        - "Search within documents"
+
+# ============================================================================
+# NON-FUNCTIONAL REQUIREMENTS
+# ============================================================================
+non_functional_requirements:
+
+  performance:
+    - id: "NFR-PF-001"
+      title: "Response Time"
+      description: "System response time requirements"
+      requirements:
+        - "Document upload: < 30 seconds for 10MB PDF"
+        - "Query response: < 60 seconds for complex queries"
+        - "Simple queries: < 30 seconds"
+        - "UI responsiveness: < 200ms for interactions"
+
+    - id: "NFR-PF-002"
+      title: "Throughput"
+      description: "System processing capacity"
+      requirements:
+        - "Handle up to 100 documents per collection"
+        - "Process up to 10,000 chunks"
+        - "Support concurrent queries (if multi-user)"
+
+    - id: "NFR-PF-003"
+      title: "Resource Usage"
+      description: "System resource constraints"
+      requirements:
+        - "RAM usage: < 8GB during operation"
+        - "Disk usage: Proportional to documents"
+        - "CPU: Utilize available cores efficiently"
+        - "GPU: Optional for faster inference"
+
+  reliability:
+    - id: "NFR-RL-001"
+      title: "Error Handling"
+      description: "System error handling requirements"
+      requirements:
+        - "Graceful degradation on component failure"
+        - "Clear error messages to user"
+        - "Automatic retry for transient failures"
+        - "No data loss on crashes"
+
+    - id: "NFR-RL-002"
+      title: "Data Persistence"
+      description: "Data durability requirements"
+      requirements:
+        - "Vector store persisted to disk"
+        - "Survive application restarts"
+        - "Backup capability (export/import)"
+
+  security:
+    - id: "NFR-SC-001"
+      title: "Data Privacy"
+      description: "Privacy requirements"
+      requirements:
+        - "All processing done locally"
+        - "No external API calls for LLM (using Ollama)"
+        - "No telemetry or data collection"
+        - "Documents stored only on local machine"
+
+    - id: "NFR-SC-002"
+      title: "Input Validation"
+      description: "Input security requirements"
+      requirements:
+        - "Validate file types before processing"
+        - "Sanitize user inputs"
+        - "Limit file sizes"
+        - "Prevent path traversal attacks"
+
+  usability:
+    - id: "NFR-US-001"
+      title: "Ease of Use"
+      description: "Usability requirements"
+      requirements:
+        - "Intuitive interface requiring no training"
+        - "Clear feedback for all actions"
+        - "Helpful error messages"
+        - "Consistent UI patterns"
+
+    - id: "NFR-US-002"
+      title: "Accessibility"
+      description: "Accessibility considerations"
+      requirements:
+        - "Keyboard navigation support"
+        - "Screen reader compatible"
+        - "Sufficient color contrast"
+
+  maintainability:
+    - id: "NFR-MT-001"
+      title: "Code Quality"
+      description: "Code maintainability requirements"
+      requirements:
+        - "Modular architecture"
+        - "Clear separation of concerns"
+        - "Comprehensive docstrings"
+        - "Type hints throughout"
+        - "Unit test coverage > 70%"
+
+    - id: "NFR-MT-002"
+      title: "Configuration"
+      description: "Configuration management"
+      requirements:
+        - "Externalized configuration"
+        - "Environment variable support"
+        - "Easy model switching"
+        - "Configurable parameters"
+
+  scalability:
+    - id: "NFR-SC-001"
+      title: "Document Scalability"
+      description: "Scaling with document volume"
+      requirements:
+        - "Handle growing document collections"
+        - "Efficient indexing for large datasets"
+        - "Query performance degrades gracefully"
+
+# ============================================================================
+# TECHNICAL REQUIREMENTS
+# ============================================================================
+technical_requirements:
+
+  technology_stack:
+    programming_language:
+      name: "Python"
+      version: ">=3.10"
+      rationale: "Best ecosystem for AI/ML, LangChain support"
+
+    llm_framework:
+      name: "LangChain"
+      version: ">=0.3.0"
+      components:
+        - "langchain-core"
+        - "langchain-community"
+        - "langchain-text-splitters"
+      rationale: "Industry standard for LLM applications"
+
+    agent_orchestration:
+      name: "LangGraph"
+      version: ">=0.2.0"
+      rationale: "Native multi-agent support, state management"
+
+    vector_database:
+      name: "ChromaDB"
+      version: ">=0.4.0"
+      rationale: "Easy to use, embedded, good for learning"
+      alternatives:
+        - name: "FAISS"
+          rationale: "Better for large-scale, but less features"
+        - name: "Qdrant"
+          rationale: "Production-ready, but more complex"
+
+    embedding_model:
+      name: "sentence-transformers"
+      model: "all-MiniLM-L6-v2"
+      rationale: "Free, local, good quality, lightweight"
+      alternatives:
+        - name: "nomic-embed-text"
+          source: "Ollama"
+          rationale: "Runs via Ollama, good integration"
+
+    llm_inference:
+      name: "Ollama"
+      models:
+        primary: "llama3.2"
+        alternative: "mistral"
+      rationale: "Free, local, privacy-preserving"
+
+    user_interface:
+      name: "Streamlit"
+      version: ">=1.28.0"
+      rationale: "Rapid development, Python-native, good for prototypes"
+      alternatives:
+        - name: "Gradio"
+          rationale: "Similar capabilities, different style"
+        - name: "FastAPI + React"
+          rationale: "More scalable, but more complex"
+
+    document_processing:
+      libraries:
+        - name: "pypdf"
+          purpose: "PDF text extraction"
+        - name: "python-docx"
+          purpose: "Word document support (optional)"
+        - name: "unstructured"
+          purpose: "Advanced document parsing (optional)"
+
+  dependencies:
+    required:
+      - package: "langchain"
+        version: ">=0.3.0"
+      - package: "langgraph"
+        version: ">=0.2.0"
+      - package: "langchain-community"
+        version: ">=0.3.0"
+      - package: "langchain-ollama"
+        version: ">=0.2.0"
+      - package: "chromadb"
+        version: ">=0.4.0"
+      - package: "sentence-transformers"
+        version: ">=2.2.0"
+      - package: "pypdf"
+        version: ">=3.0.0"
+      - package: "streamlit"
+        version: ">=1.28.0"
+      - package: "python-dotenv"
+        version: ">=1.0.0"
+      - package: "pydantic"
+        version: ">=2.0.0"
+
+    development:
+      - package: "pytest"
+        version: ">=7.0.0"
+      - package: "pytest-asyncio"
+        version: ">=0.21.0"
+      - package: "black"
+        version: ">=23.0.0"
+      - package: "ruff"
+        version: ">=0.1.0"
+      - package: "mypy"
+        version: ">=1.0.0"
+
+  system_requirements:
+    minimum:
+      os: "Windows 10, macOS 10.15, Ubuntu 20.04"
+      ram: "8GB"
+      storage: "10GB available"
+      python: "3.10+"
+
+    recommended:
+      os: "Windows 11, macOS 12+, Ubuntu 22.04"
+      ram: "16GB"
+      storage: "20GB available"
+      gpu: "NVIDIA GPU with 6GB+ VRAM (optional)"
+      python: "3.11+"
+
+# ============================================================================
+# PROJECT STRUCTURE
+# ============================================================================
+project_structure:
+  root: "student-research-assistant"
+
+  directories:
+    - path: "src"
+      description: "Main source code"
+      subdirectories:
+        - path: "src/agents"
+          description: "Agent implementations"
+          files:
+            - name: "__init__.py"
+              description: "Agent module exports"
+            - name: "base.py"
+              description: "Base agent class"
+            - name: "supervisor.py"
+              description: "Supervisor agent implementation"
+            - name: "researcher.py"
+              description: "Researcher agent implementation"
+            - name: "writer.py"
+              description: "Writer agent implementation"
+            - name: "critic.py"
+              description: "Critic agent implementation"
+
+        - path: "src/tools"
+          description: "Agent tools"
+          files:
+            - name: "__init__.py"
+              description: "Tools module exports"
+            - name: "search.py"
+              description: "Vector search tools"
+            - name: "document.py"
+              description: "Document processing tools"
+
+        - path: "src/graph"
+          description: "LangGraph workflow"
+          files:
+            - name: "__init__.py"
+              description: "Graph module exports"
+            - name: "state.py"
+              description: "State schema definition"
+            - name: "workflow.py"
+              description: "Main workflow graph"
+            - name: "nodes.py"
+              description: "Graph node definitions"
+
+        - path: "src/vectorstore"
+          description: "Vector database operations"
+          files:
+            - name: "__init__.py"
+              description: "Vectorstore module exports"
+            - name: "embeddings.py"
+              description: "Embedding model setup"
+            - name: "store.py"
+              description: "ChromaDB operations"
+            - name: "ingest.py"
+              description: "Document ingestion pipeline"
+
+        - path: "src/ui"
+          description: "User interface"
+          files:
+            - name: "app.py"
+              description: "Main Streamlit application"
+            - name: "components.py"
+              description: "Reusable UI components"
+            - name: "pages"
+              description: "Multi-page app pages"
+
+        - path: "src/config"
+          description: "Configuration"
+          files:
+            - name: "__init__.py"
+              description: "Config exports"
+            - name: "settings.py"
+              description: "Application settings"
+            - name: "prompts.py"
+              description: "Agent prompts"
+
+    - path: "data"
+      description: "User documents"
+      subdirectories:
+        - path: "data/documents"
+          description: "Uploaded PDF/text files"
+        - path: "data/vectorstore"
+          description: "ChromaDB persistent storage"
+
+    - path: "tests"
+      description: "Test files"
+      subdirectories:
+        - path: "tests/unit"
+          description: "Unit tests"
+        - path: "tests/integration"
+          description: "Integration tests"
+        - path: "tests/fixtures"
+          description: "Test data and fixtures"
+
+    - path: "docs"
+      description: "Documentation"
+      files:
+        - name: "setup.md"
+          description: "Setup instructions"
+        - name: "usage.md"
+          description: "Usage guide"
+        - name: "architecture.md"
+          description: "Architecture documentation"
+
+  root_files:
+    - name: "requirements.txt"
+      description: "Python dependencies"
+    - name: "requirements-dev.txt"
+      description: "Development dependencies"
+    - name: "pyproject.toml"
+      description: "Project configuration"
+    - name: ".env.example"
+      description: "Environment variables template"
+    - name: ".gitignore"
+      description: "Git ignore patterns"
+    - name: "README.md"
+      description: "Project readme"
+    - name: "Makefile"
+      description: "Common commands"
+
+# ============================================================================
+# DEVELOPMENT PHASES
+# ============================================================================
+development_phases:
+
+  phase_1:
+    name: "Foundation"
+    description: "Set up project structure and basic components"
+    tasks:
+      - id: "P1-T01"
+        title: "Project Setup"
+        description: "Initialize project with dependencies"
+        deliverables:
+          - "Project directory structure"
+          - "requirements.txt"
+          - "pyproject.toml"
+          - "Basic configuration"
+
+      - id: "P1-T02"
+        title: "Document Ingestion"
+        description: "Implement PDF loading and chunking"
+        deliverables:
+          - "PDF loader implementation"
+          - "Text splitter configuration"
+          - "Basic ingestion pipeline"
+
+      - id: "P1-T03"
+        title: "Vector Store Setup"
+        description: "Set up ChromaDB and embeddings"
+        deliverables:
+          - "Embedding model integration"
+          - "ChromaDB collection management"
+          - "Persistence configuration"
+
+      - id: "P1-T04"
+        title: "Basic RAG Pipeline"
+        description: "Simple retrieval and generation"
+        deliverables:
+          - "Vector search implementation"
+          - "Basic LLM integration"
+          - "Simple Q&A chain"
+
+  phase_2:
+    name: "Agent Development"
+    description: "Implement individual agents"
+    tasks:
+      - id: "P2-T01"
+        title: "Base Agent Class"
+        description: "Create base agent abstraction"
+        deliverables:
+          - "Base agent class"
+          - "Agent interface definition"
+          - "Tool binding pattern"
+
+      - id: "P2-T02"
+        title: "Researcher Agent"
+        description: "Implement researcher agent"
+        deliverables:
+          - "Researcher agent class"
+          - "Search tools"
+          - "Fact extraction logic"
+
+      - id: "P2-T03"
+        title: "Writer Agent"
+        description: "Implement writer agent"
+        deliverables:
+          - "Writer agent class"
+          - "Synthesis tools"
+          - "Citation formatting"
+
+      - id: "P2-T04"
+        title: "Critic Agent"
+        description: "Implement critic agent"
+        deliverables:
+          - "Critic agent class"
+          - "Fact-checking tools"
+          - "Quality evaluation logic"
+
+      - id: "P2-T05"
+        title: "Supervisor Agent"
+        description: "Implement supervisor agent"
+        deliverables:
+          - "Supervisor agent class"
+          - "Routing logic"
+          - "Workflow management"
+
+  phase_3:
+    name: "LangGraph Integration"
+    description: "Build the multi-agent workflow"
+    tasks:
+      - id: "P3-T01"
+        title: "State Schema"
+        description: "Define shared state structure"
+        deliverables:
+          - "State TypedDict/Pydantic model"
+          - "State initialization"
+          - "State update logic"
+
+      - id: "P3-T02"
+        title: "Graph Nodes"
+        description: "Create graph node functions"
+        deliverables:
+          - "Researcher node"
+          - "Writer node"
+          - "Critic node"
+          - "Supervisor node"
+
+      - id: "P3-T03"
+        title: "Graph Edges"
+        description: "Implement conditional routing"
+        deliverables:
+          - "Routing conditions"
+          - "Edge definitions"
+          - "Termination conditions"
+
+      - id: "P3-T04"
+        title: "Workflow Assembly"
+        description: "Assemble complete graph"
+        deliverables:
+          - "Complete StateGraph"
+          - "Graph compilation"
+          - "Execution testing"
+
+  phase_4:
+    name: "User Interface"
+    description: "Build the Streamlit UI"
+    tasks:
+      - id: "P4-T01"
+        title: "Document Upload Page"
+        description: "UI for document management"
+        deliverables:
+          - "File upload widget"
+          - "Document list display"
+          - "Delete functionality"
+
+      - id: "P4-T02"
+        title: "Chat Interface"
+        description: "Main Q&A interface"
+        deliverables:
+          - "Chat input/output"
+          - "Message history"
+          - "Citation display"
+
+      - id: "P4-T03"
+        title: "Agent Visualization"
+        description: "Show agent workflow"
+        deliverables:
+          - "Current agent indicator"
+          - "Progress display"
+          - "Reasoning view (optional)"
+
+      - id: "P4-T04"
+        title: "Settings Page"
+        description: "Configuration interface"
+        deliverables:
+          - "Model selection"
+          - "Parameter tuning"
+          - "Collection management"
+
+  phase_5:
+    name: "Testing & Polish"
+    description: "Testing, documentation, refinement"
+    tasks:
+      - id: "P5-T01"
+        title: "Unit Tests"
+        description: "Test individual components"
+        deliverables:
+          - "Agent tests"
+          - "Tool tests"
+          - "Vector store tests"
+
+      - id: "P5-T02"
+        title: "Integration Tests"
+        description: "Test complete workflows"
+        deliverables:
+          - "End-to-end tests"
+          - "Graph execution tests"
+          - "UI tests"
+
+      - id: "P5-T03"
+        title: "Documentation"
+        description: "Create user documentation"
+        deliverables:
+          - "Setup guide"
+          - "Usage documentation"
+          - "API documentation"
+
+      - id: "P5-T04"
+        title: "Refinement"
+        description: "Bug fixes and improvements"
+        deliverables:
+          - "Bug fixes"
+          - "Performance optimization"
+          - "UX improvements"
+
+# ============================================================================
+# CONFIGURATION SCHEMA
+# ============================================================================
+configuration:
+
+  environment_variables:
+    - name: "OLLAMA_BASE_URL"
+      description: "Ollama server URL"
+      default: "http://localhost:11434"
+      required: false
+
+    - name: "OLLAMA_MODEL"
+      description: "Default LLM model"
+      default: "llama3.2"
+      required: false
+
+    - name: "EMBEDDING_MODEL"
+      description: "Embedding model name"
+      default: "all-MiniLM-L6-v2"
+      required: false
+
+    - name: "CHROMA_PERSIST_DIR"
+      description: "ChromaDB storage path"
+      default: "./data/vectorstore"
+      required: false
+
+    - name: "CHUNK_SIZE"
+      description: "Document chunk size in tokens"
+      default: "1000"
+      required: false
+
+    - name: "CHUNK_OVERLAP"
+      description: "Chunk overlap in tokens"
+      default: "200"
+      required: false
+
+    - name: "MAX_RETRIEVAL_DOCS"
+      description: "Maximum documents to retrieve"
+      default: "5"
+      required: false
+
+    - name: "MAX_ITERATIONS"
+      description: "Maximum agent iterations"
+      default: "5"
+      required: false
+
+  application_settings:
+    llm:
+      model: "llama3.2"
+      temperature: 0.7
+      max_tokens: 2048
+
+    embeddings:
+      model: "all-MiniLM-L6-v2"
+      device: "cpu"  # or "cuda"
+
+    chunking:
+      chunk_size: 1000
+      chunk_overlap: 200
+      separators:
+        - "\n\n"
+        - "\n"
+        - ". "
+        - " "
+
+    retrieval:
+      top_k: 5
+      score_threshold: 0.5
+
+    agents:
+      max_iterations: 5
+      max_revisions: 3
+      verbose: true
+
+# ============================================================================
+# AGENT PROMPTS
+# ============================================================================
+agent_prompts:
+
+  supervisor:
+    system: |
+      You are a research supervisor managing a team of AI agents to answer
+      academic research questions. Your team consists of:
+
+      1. RESEARCHER - Finds and retrieves relevant information from documents
+      2. WRITER - Synthesizes information into coherent responses
+      3. CRITIC - Reviews responses for accuracy and completeness
+
+      Based on the current state, decide which agent should work next.
+      If the task is complete, respond with "FINISH".
+
+      Always explain your routing decision briefly.
+
+    decision_format: |
+      Respond with exactly one of: RESEARCHER, WRITER, CRITIC, or FINISH
+
+      Current state:
+      - Question: {question}
+      - Research done: {has_research}
+      - Draft exists: {has_draft}
+      - Critique done: {has_critique}
+      - Revisions: {revision_count}
+
+  researcher:
+    system: |
+      You are a research agent specialized in finding and extracting
+      relevant information from academic documents.
+
+      Your responsibilities:
+      1. Search the document database for relevant passages
+      2. Extract key facts, data, and quotes
+      3. Note the source for each piece of information
+      4. Identify if more information is needed
+
+      Be thorough but focused. Only include information directly relevant
+      to the question.
+
+    output_format: |
+      ## Research Findings
+
+      ### Key Information
+      [List key facts with source citations]
+
+      ### Relevant Quotes
+      [Important direct quotes with sources]
+
+      ### Information Gaps
+      [Note any missing information]
+
+  writer:
+    system: |
+      You are a writing agent specialized in synthesizing research into
+      clear, well-structured academic responses.
+
+      Your responsibilities:
+      1. Synthesize information from the research findings
+      2. Create a coherent, well-organized response
+      3. Include proper citations for all claims
+      4. Use academic writing style
+
+      If revision feedback is provided, incorporate it while maintaining
+      quality and accuracy.
+
+    output_format: |
+      [Clear introduction to the topic]
+
+      [Main body with organized points, each supported by citations]
+
+      [Conclusion summarizing key points]
+
+      ## Sources
+      [Numbered list of all sources cited]
+
+  critic:
+    system: |
+      You are a critic agent specialized in reviewing academic responses
+      for quality, accuracy, and completeness.
+
+      Your responsibilities:
+      1. Verify claims are supported by cited sources
+      2. Check for factual accuracy
+      3. Identify gaps or missing information
+      4. Evaluate overall quality and coherence
+      5. Provide specific, actionable feedback
+
+      Be constructive but thorough. If the response is acceptable,
+      indicate approval.
+
+    output_format: |
+      ## Review
+
+      ### Accuracy Check
+      [Verify each major claim against sources]
+
+      ### Completeness
+      [Note any missing aspects of the question]
+
+      ### Quality
+      [Assess structure, clarity, coherence]
+
+      ### Verdict
+      [APPROVED / NEEDS_REVISION]
+
+      ### Feedback (if revision needed)
+      [Specific suggestions for improvement]
+
+# ============================================================================
+# TESTING REQUIREMENTS
+# ============================================================================
+testing:
+
+  unit_tests:
+    - area: "Document Processing"
+      tests:
+        - "Test PDF loading"
+        - "Test text extraction"
+        - "Test chunking with various sizes"
+        - "Test metadata extraction"
+
+    - area: "Vector Store"
+      tests:
+        - "Test embedding generation"
+        - "Test document insertion"
+        - "Test similarity search"
+        - "Test metadata filtering"
+        - "Test persistence"
+
+    - area: "Agents"
+      tests:
+        - "Test researcher agent response format"
+        - "Test writer agent citation handling"
+        - "Test critic agent verdict parsing"
+        - "Test supervisor routing logic"
+
+    - area: "Tools"
+      tests:
+        - "Test search tool"
+        - "Test fact extraction tool"
+        - "Test citation tool"
+
+  integration_tests:
+    - area: "RAG Pipeline"
+      tests:
+        - "Test end-to-end document to answer"
+        - "Test retrieval quality"
+        - "Test response relevance"
+
+    - area: "Agent Workflow"
+      tests:
+        - "Test complete agent cycle"
+        - "Test revision loop"
+        - "Test termination conditions"
+        - "Test error handling"
+
+    - area: "User Interface"
+      tests:
+        - "Test file upload flow"
+        - "Test chat interaction"
+        - "Test settings persistence"
+
+  test_fixtures:
+    - name: "sample_research_paper.pdf"
+      description: "Sample academic paper for testing"
+
+    - name: "test_questions.json"
+      description: "Set of test questions with expected answer patterns"
+
+    - name: "mock_embeddings.npy"
+      description: "Pre-computed embeddings for deterministic testing"
+
+# ============================================================================
+# FUTURE ENHANCEMENTS
+# ============================================================================
+future_enhancements:
+
+  phase_2_features:
+    - id: "FE-001"
+      title: "Web Search Integration"
+      description: "Add web search capability for additional sources"
+      complexity: "MEDIUM"
+
+    - id: "FE-002"
+      title: "OCR Support"
+      description: "Handle scanned PDFs with OCR"
+      complexity: "MEDIUM"
+
+    - id: "FE-003"
+      title: "Multi-language Support"
+      description: "Support documents in multiple languages"
+      complexity: "HIGH"
+
+    - id: "FE-004"
+      title: "Export Functionality"
+      description: "Export answers as PDF/Word/Markdown"
+      complexity: "LOW"
+
+    - id: "FE-005"
+      title: "Human-in-the-loop"
+      description: "Allow user intervention in agent workflow"
+      complexity: "MEDIUM"
+
+  phase_3_features:
+    - id: "FE-006"
+      title: "Collaborative Features"
+      description: "Multi-user support with shared collections"
+      complexity: "HIGH"
+
+    - id: "FE-007"
+      title: "API Endpoint"
+      description: "REST API for programmatic access"
+      complexity: "MEDIUM"
+
+    - id: "FE-008"
+      title: "Advanced Analytics"
+      description: "Track research patterns and insights"
+      complexity: "MEDIUM"
+
+    - id: "FE-009"
+      title: "Custom Agent Creation"
+      description: "Allow users to define custom agents"
+      complexity: "HIGH"
+
+# ============================================================================
+# GLOSSARY
+# ============================================================================
+glossary:
+  - term: "RAG"
+    definition: "Retrieval Augmented Generation - combining retrieval with LLM generation"
+
+  - term: "Embedding"
+    definition: "Numerical vector representation of text for semantic comparison"
+
+  - term: "Vector Database"
+    definition: "Database optimized for storing and searching embeddings"
+
+  - term: "Chunking"
+    definition: "Splitting documents into smaller pieces for processing"
+
+  - term: "LangChain"
+    definition: "Framework for building LLM applications"
+
+  - term: "LangGraph"
+    definition: "Library for building stateful multi-agent workflows"
+
+  - term: "Agent"
+    definition: "AI component that can use tools and make decisions"
+
+  - term: "Supervisor"
+    definition: "Agent that orchestrates other agents"
+
+  - term: "State"
+    definition: "Shared data structure passed between agents"
+
+  - term: "Node"
+    definition: "Individual step in a LangGraph workflow"
+
+  - term: "Edge"
+    definition: "Connection between nodes defining flow"
+
+# ============================================================================
+# END OF REQUIREMENTS DOCUMENT
+# ============================================================================

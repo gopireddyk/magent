@@ -1,0 +1,1543 @@
+# ============================================================================
+# AI AGENT IMPLEMENTATION GUIDE
+# ============================================================================
+# Purpose: Provide complete, unambiguous instructions for an AI agent to
+#          implement the Student Research Assistant application with high
+#          confidence and minimal ambiguity.
+#
+# Design Principle: Every decision is pre-made. Every file has exact content.
+#                   No interpretation required. Copy-paste ready.
+# ============================================================================
+
+metadata:
+  document_type: "AI Agent Implementation Guide"
+  version: "1.0.0"
+  target_audience: "AI Coding Assistants (Claude, GPT-4, Copilot)"
+  confidence_target: "95%+ successful implementation"
+  last_updated: "2024"
+
+# ============================================================================
+# SECTION 1: IMPLEMENTATION PRINCIPLES
+# ============================================================================
+implementation_principles:
+
+  core_rules:
+    - rule: "NO AMBIGUITY"
+      description: "Every code snippet is complete and copy-paste ready"
+
+    - rule: "NO DECISIONS REQUIRED"
+      description: "All architectural decisions are pre-made"
+
+    - rule: "EXPLICIT OVER IMPLICIT"
+      description: "Every import, every type hint, every default value is specified"
+
+    - rule: "WORKING INCREMENTS"
+      description: "Each phase produces a working application"
+
+    - rule: "TEST AS YOU GO"
+      description: "Each component has verification steps"
+
+  file_creation_order:
+    description: "Create files in this EXACT order to avoid import errors"
+    order:
+      - "src/research_assistant/__init__.py"
+      - "src/research_assistant/config/settings.py"
+      - "src/research_assistant/config/prompts.py"
+      - "src/research_assistant/exceptions.py"
+      - "src/research_assistant/models/schemas.py"
+      - "src/research_assistant/vectorstore/embeddings.py"
+      - "src/research_assistant/vectorstore/store.py"
+      - "src/research_assistant/services/document_service.py"
+      - "src/research_assistant/services/llm_service.py"
+      - "src/research_assistant/tools/search_tools.py"
+      - "src/research_assistant/agents/base.py"
+      - "src/research_assistant/agents/researcher.py"
+      - "src/research_assistant/agents/writer.py"
+      - "src/research_assistant/agents/critic.py"
+      - "src/research_assistant/agents/supervisor.py"
+      - "src/research_assistant/graph/state.py"
+      - "src/research_assistant/graph/nodes.py"
+      - "src/research_assistant/graph/workflow.py"
+      - "src/research_assistant/ui/app.py"
+      - "src/research_assistant/cli.py"
+
+# ============================================================================
+# SECTION 2: DIRECTORY STRUCTURE (CREATE FIRST)
+# ============================================================================
+directory_structure:
+  description: "Create all directories before creating files"
+
+  commands:
+    bash: |
+      mkdir -p src/research_assistant/{config,models,vectorstore,services,tools,agents,graph,ui}
+      mkdir -p tests/{unit,integration,fixtures}
+      mkdir -p data/{documents,vectorstore}
+      touch src/research_assistant/__init__.py
+      touch src/research_assistant/config/__init__.py
+      touch src/research_assistant/models/__init__.py
+      touch src/research_assistant/vectorstore/__init__.py
+      touch src/research_assistant/services/__init__.py
+      touch src/research_assistant/tools/__init__.py
+      touch src/research_assistant/agents/__init__.py
+      touch src/research_assistant/graph/__init__.py
+      touch src/research_assistant/ui/__init__.py
+
+  expected_structure: |
+    src/
+    └── research_assistant/
+        ├── __init__.py
+        ├── config/
+        │   ├── __init__.py
+        │   ├── settings.py
+        │   └── prompts.py
+        ├── models/
+        │   ├── __init__.py
+        │   └── schemas.py
+        ├── vectorstore/
+        │   ├── __init__.py
+        │   ├── embeddings.py
+        │   └── store.py
+        ├── services/
+        │   ├── __init__.py
+        │   ├── document_service.py
+        │   └── llm_service.py
+        ├── tools/
+        │   ├── __init__.py
+        │   └── search_tools.py
+        ├── agents/
+        │   ├── __init__.py
+        │   ├── base.py
+        │   ├── researcher.py
+        │   ├── writer.py
+        │   ├── critic.py
+        │   └── supervisor.py
+        ├── graph/
+        │   ├── __init__.py
+        │   ├── state.py
+        │   ├── nodes.py
+        │   └── workflow.py
+        ├── ui/
+        │   ├── __init__.py
+        │   └── app.py
+        ├── exceptions.py
+        └── cli.py
+
+# ============================================================================
+# SECTION 3: COMPLETE FILE IMPLEMENTATIONS
+# ============================================================================
+file_implementations:
+
+  # --------------------------------------------------------------------------
+  # FILE 1: Package Init
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/__init__.py"
+    description: "Main package initialization"
+    content: |
+      """Student Research Assistant - Multi-Agent AI Application."""
+
+      __version__ = "1.0.0"
+      __author__ = "Your Name"
+
+    verification:
+      command: "python -c \"import research_assistant; print(research_assistant.__version__)\""
+      expected_output: "1.0.0"
+
+  # --------------------------------------------------------------------------
+  # FILE 2: Settings Configuration
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/config/settings.py"
+    description: "Application settings using Pydantic"
+    dependencies:
+      - "pydantic-settings>=2.0.0"
+      - "python-dotenv>=1.0.0"
+    content: |
+      """Application settings and configuration."""
+
+      from pathlib import Path
+      from pydantic_settings import BaseSettings
+      from pydantic import Field
+
+
+      class Settings(BaseSettings):
+          """Application settings with validation and defaults."""
+
+          # Ollama LLM Configuration
+          ollama_base_url: str = Field(
+              default="http://localhost:11434",
+              description="Ollama API base URL",
+          )
+          ollama_model: str = Field(
+              default="llama3.2",
+              description="LLM model name",
+          )
+          llm_temperature: float = Field(
+              default=0.7,
+              ge=0.0,
+              le=2.0,
+              description="LLM temperature for generation",
+          )
+          llm_max_tokens: int = Field(
+              default=2048,
+              ge=100,
+              le=8192,
+              description="Maximum tokens for LLM response",
+          )
+
+          # Embedding Configuration
+          embedding_model: str = Field(
+              default="all-MiniLM-L6-v2",
+              description="Sentence transformer model for embeddings",
+          )
+          embedding_device: str = Field(
+              default="cpu",
+              description="Device for embeddings (cpu, cuda, mps)",
+          )
+
+          # ChromaDB Configuration
+          chroma_persist_dir: str = Field(
+              default="./data/vectorstore",
+              description="ChromaDB persistence directory",
+          )
+          chroma_collection_name: str = Field(
+              default="research_documents",
+              description="Default collection name",
+          )
+
+          # Document Processing
+          chunk_size: int = Field(
+              default=1000,
+              ge=100,
+              le=4000,
+              description="Document chunk size in characters",
+          )
+          chunk_overlap: int = Field(
+              default=200,
+              ge=0,
+              le=500,
+              description="Chunk overlap in characters",
+          )
+          upload_dir: str = Field(
+              default="./data/documents",
+              description="Directory for uploaded documents",
+          )
+
+          # Retrieval Configuration
+          retrieval_top_k: int = Field(
+              default=5,
+              ge=1,
+              le=20,
+              description="Number of documents to retrieve",
+          )
+          retrieval_threshold: float = Field(
+              default=0.5,
+              ge=0.0,
+              le=1.0,
+              description="Minimum similarity score",
+          )
+
+          # Agent Configuration
+          max_iterations: int = Field(
+              default=5,
+              ge=1,
+              le=10,
+              description="Maximum agent workflow iterations",
+          )
+          max_revisions: int = Field(
+              default=3,
+              ge=1,
+              le=5,
+              description="Maximum revision cycles",
+          )
+
+          # Logging
+          log_level: str = Field(
+              default="INFO",
+              description="Logging level",
+          )
+          log_json: bool = Field(
+              default=False,
+              description="Use JSON logging format",
+          )
+
+          model_config = {
+              "env_prefix": "RESEARCH_",
+              "env_file": ".env",
+              "env_file_encoding": "utf-8",
+              "extra": "ignore",
+          }
+
+          @property
+          def chroma_path(self) -> Path:
+              """Get ChromaDB path as Path object."""
+              return Path(self.chroma_persist_dir)
+
+          @property
+          def upload_path(self) -> Path:
+              """Get upload directory as Path object."""
+              return Path(self.upload_dir)
+
+
+      # Global settings instance
+      settings = Settings()
+
+    verification:
+      command: "python -c \"from research_assistant.config.settings import settings; print(settings.ollama_model)\""
+      expected_output: "llama3.2"
+
+  # --------------------------------------------------------------------------
+  # FILE 3: Agent Prompts
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/config/prompts.py"
+    description: "All agent prompts in one place"
+    content: |
+      """Agent prompts and templates."""
+
+      # ========================================================================
+      # SUPERVISOR AGENT PROMPTS
+      # ========================================================================
+
+      SUPERVISOR_SYSTEM_PROMPT = """You are a research supervisor managing a team of AI agents to answer academic research questions.
+
+      Your team consists of:
+      1. RESEARCHER - Finds and retrieves relevant information from the document database
+      2. WRITER - Synthesizes information into coherent, well-cited responses
+      3. CRITIC - Reviews responses for accuracy, completeness, and quality
+
+      Your job is to:
+      1. Analyze the current state of the research task
+      2. Decide which agent should work next
+      3. Determine when the task is complete
+
+      ROUTING RULES:
+      - If no research has been done yet → route to RESEARCHER
+      - If research is done but no draft exists → route to WRITER
+      - If draft exists but hasn't been reviewed → route to CRITIC
+      - If critic requests revision AND revisions < max_revisions → route to WRITER
+      - If critic approves OR max revisions reached → FINISH
+
+      Always respond with EXACTLY one of: RESEARCHER, WRITER, CRITIC, or FINISH
+      """
+
+      SUPERVISOR_DECISION_PROMPT = """Current State:
+      - Question: {question}
+      - Research completed: {has_research}
+      - Draft exists: {has_draft}
+      - Critique completed: {has_critique}
+      - Critic verdict: {critic_verdict}
+      - Revision count: {revision_count}/{max_revisions}
+
+      Based on the routing rules, which agent should work next?
+      Respond with EXACTLY one word: RESEARCHER, WRITER, CRITIC, or FINISH"""
+
+      # ========================================================================
+      # RESEARCHER AGENT PROMPTS
+      # ========================================================================
+
+      RESEARCHER_SYSTEM_PROMPT = """You are a research agent specialized in finding and extracting relevant information from academic documents.
+
+      Your responsibilities:
+      1. Analyze the user's question to identify key concepts
+      2. Search the document database for relevant passages
+      3. Extract and organize key facts, data, and quotes
+      4. Note the source (document name, page/section) for each piece of information
+      5. Identify any gaps in the available information
+
+      OUTPUT FORMAT:
+      Provide your findings in this structure:
+
+      ## Key Findings
+      - [Finding 1] (Source: document_name, page X)
+      - [Finding 2] (Source: document_name, page Y)
+
+      ## Relevant Quotes
+      > "Direct quote from source" (Source: document_name, page Z)
+
+      ## Information Gaps
+      - [What information is missing or unclear]
+
+      Be thorough but focused. Only include information directly relevant to the question."""
+
+      RESEARCHER_TASK_PROMPT = """Research Question: {question}
+
+      Retrieved Documents:
+      {documents}
+
+      Analyze these documents and extract all relevant information to answer the research question.
+      Follow the output format specified in your instructions."""
+
+      # ========================================================================
+      # WRITER AGENT PROMPTS
+      # ========================================================================
+
+      WRITER_SYSTEM_PROMPT = """You are a writing agent specialized in synthesizing research into clear, well-structured academic responses.
+
+      Your responsibilities:
+      1. Synthesize information from the research findings
+      2. Create a coherent, well-organized response
+      3. Include proper citations for ALL claims using [1], [2], etc.
+      4. Use clear, academic writing style
+      5. If revision feedback is provided, address ALL points raised
+
+      OUTPUT FORMAT:
+      Structure your response as:
+
+      [Introduction - Brief overview of the topic]
+
+      [Main Body - Organized points with citations]
+      - Each major claim must have a citation [X]
+      - Use paragraphs to organize related ideas
+
+      [Conclusion - Summary of key points]
+
+      ## Sources
+      [1] Document Name, Section/Page
+      [2] Document Name, Section/Page
+      ...
+
+      IMPORTANT: Every factual claim MUST have a citation. Do not make claims without sources."""
+
+      WRITER_TASK_PROMPT = """Question: {question}
+
+      Research Findings:
+      {research_notes}
+
+      {revision_instructions}
+
+      Write a comprehensive, well-cited response based on the research findings."""
+
+      WRITER_REVISION_INSTRUCTIONS = """
+      REVISION REQUIRED - Address the following feedback:
+      {critique}
+
+      Make sure to:
+      1. Address ALL points raised in the critique
+      2. Maintain all valid citations
+      3. Add citations for any new claims
+      """
+
+      # ========================================================================
+      # CRITIC AGENT PROMPTS
+      # ========================================================================
+
+      CRITIC_SYSTEM_PROMPT = """You are a critic agent specialized in reviewing academic responses for quality, accuracy, and completeness.
+
+      Your responsibilities:
+      1. Verify that claims are supported by the cited sources
+      2. Check for factual accuracy and logical consistency
+      3. Identify gaps or missing information
+      4. Evaluate overall quality, structure, and clarity
+      5. Provide specific, actionable feedback if revision is needed
+
+      EVALUATION CRITERIA:
+      - Accuracy: Are all claims supported by sources?
+      - Completeness: Does the response fully address the question?
+      - Citations: Are all claims properly cited?
+      - Clarity: Is the response well-organized and clear?
+      - Quality: Is the writing appropriate for academic use?
+
+      OUTPUT FORMAT:
+      ## Accuracy Check
+      - [Verify each major claim]
+
+      ## Completeness Check
+      - [Note any missing aspects]
+
+      ## Citation Check
+      - [Verify citations are present and correct]
+
+      ## Quality Assessment
+      - [Assess structure and clarity]
+
+      ## Verdict: [APPROVED or NEEDS_REVISION]
+
+      ## Feedback (if NEEDS_REVISION)
+      - [Specific point 1 to address]
+      - [Specific point 2 to address]
+      """
+
+      CRITIC_TASK_PROMPT = """Original Question: {question}
+
+      Research Findings:
+      {research_notes}
+
+      Draft Response:
+      {draft_answer}
+
+      Review this draft response against the research findings and original question.
+      Provide your evaluation following the output format in your instructions."""
+
+    verification:
+      command: "python -c \"from research_assistant.config.prompts import SUPERVISOR_SYSTEM_PROMPT; print('OK' if len(SUPERVISOR_SYSTEM_PROMPT) > 100 else 'FAIL')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 4: Custom Exceptions
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/exceptions.py"
+    description: "Custom exception classes"
+    content: |
+      """Custom exceptions for the Research Assistant application."""
+
+
+      class ResearchAssistantError(Exception):
+          """Base exception for all application errors."""
+          pass
+
+
+      class ConfigurationError(ResearchAssistantError):
+          """Error in application configuration."""
+          pass
+
+
+      class DocumentProcessingError(ResearchAssistantError):
+          """Error during document processing."""
+
+          def __init__(self, file_path: str, reason: str) -> None:
+              self.file_path = file_path
+              self.reason = reason
+              super().__init__(f"Failed to process '{file_path}': {reason}")
+
+
+      class VectorStoreError(ResearchAssistantError):
+          """Error with vector store operations."""
+
+          def __init__(self, operation: str, reason: str) -> None:
+              self.operation = operation
+              self.reason = reason
+              super().__init__(f"Vector store {operation} failed: {reason}")
+
+
+      class EmbeddingError(ResearchAssistantError):
+          """Error generating embeddings."""
+          pass
+
+
+      class LLMError(ResearchAssistantError):
+          """Error with LLM operations."""
+
+          def __init__(self, model: str, reason: str) -> None:
+              self.model = model
+              self.reason = reason
+              super().__init__(f"LLM '{model}' error: {reason}")
+
+
+      class AgentError(ResearchAssistantError):
+          """Error during agent execution."""
+
+          def __init__(self, agent_name: str, reason: str) -> None:
+              self.agent_name = agent_name
+              self.reason = reason
+              super().__init__(f"Agent '{agent_name}' failed: {reason}")
+
+
+      class WorkflowError(ResearchAssistantError):
+          """Error in workflow execution."""
+          pass
+
+
+      class RetrievalError(ResearchAssistantError):
+          """Error during document retrieval."""
+          pass
+
+    verification:
+      command: "python -c \"from research_assistant.exceptions import DocumentProcessingError; e = DocumentProcessingError('test.pdf', 'not found'); print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 5: Data Schemas/Models
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/models/schemas.py"
+    description: "Pydantic models for data structures"
+    content: |
+      """Data models and schemas."""
+
+      from datetime import datetime
+      from typing import Optional
+      from pydantic import BaseModel, Field
+
+
+      class DocumentMetadata(BaseModel):
+          """Metadata for a processed document."""
+          source: str = Field(description="Source file name")
+          page: Optional[int] = Field(default=None, description="Page number")
+          chunk_index: int = Field(description="Chunk index within document")
+          total_chunks: int = Field(description="Total chunks in document")
+          created_at: datetime = Field(default_factory=datetime.now)
+
+
+      class DocumentChunk(BaseModel):
+          """A chunk of a document with its embedding."""
+          id: str = Field(description="Unique chunk identifier")
+          content: str = Field(description="Text content of the chunk")
+          metadata: DocumentMetadata = Field(description="Chunk metadata")
+          embedding: Optional[list[float]] = Field(default=None, description="Vector embedding")
+
+
+      class RetrievedDocument(BaseModel):
+          """A document retrieved from the vector store."""
+          content: str = Field(description="Document content")
+          source: str = Field(description="Source file name")
+          page: Optional[int] = Field(default=None, description="Page number")
+          score: float = Field(description="Similarity score")
+
+          def to_context_string(self) -> str:
+              """Format document for LLM context."""
+              source_info = f"Source: {self.source}"
+              if self.page:
+                  source_info += f", Page {self.page}"
+              return f"[{source_info}]\n{self.content}"
+
+
+      class Citation(BaseModel):
+          """A citation reference."""
+          number: int = Field(description="Citation number [1], [2], etc.")
+          source: str = Field(description="Source document name")
+          page: Optional[int] = Field(default=None, description="Page number")
+          quote: Optional[str] = Field(default=None, description="Relevant quote")
+
+
+      class ResearchFindings(BaseModel):
+          """Output from the researcher agent."""
+          key_findings: list[str] = Field(default_factory=list)
+          quotes: list[str] = Field(default_factory=list)
+          information_gaps: list[str] = Field(default_factory=list)
+          sources_used: list[str] = Field(default_factory=list)
+          raw_notes: str = Field(default="", description="Raw research notes")
+
+
+      class CritiqueResult(BaseModel):
+          """Output from the critic agent."""
+          accuracy_issues: list[str] = Field(default_factory=list)
+          completeness_issues: list[str] = Field(default_factory=list)
+          citation_issues: list[str] = Field(default_factory=list)
+          quality_notes: list[str] = Field(default_factory=list)
+          verdict: str = Field(description="APPROVED or NEEDS_REVISION")
+          feedback: list[str] = Field(default_factory=list)
+          raw_critique: str = Field(default="", description="Raw critique text")
+
+
+      class ConversationMessage(BaseModel):
+          """A message in the conversation history."""
+          role: str = Field(description="user or assistant")
+          content: str = Field(description="Message content")
+          timestamp: datetime = Field(default_factory=datetime.now)
+
+
+      class SessionState(BaseModel):
+          """State for a research session."""
+          session_id: str = Field(description="Unique session identifier")
+          conversation_history: list[ConversationMessage] = Field(default_factory=list)
+          current_collection: str = Field(default="research_documents")
+          documents_loaded: list[str] = Field(default_factory=list)
+
+    verification:
+      command: "python -c \"from research_assistant.models.schemas import DocumentChunk, RetrievedDocument; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 6: Embeddings Service
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/vectorstore/embeddings.py"
+    description: "Embedding model wrapper"
+    dependencies:
+      - "sentence-transformers>=2.2.0"
+    content: |
+      """Embedding model for generating vector representations."""
+
+      import logging
+      from functools import lru_cache
+      from sentence_transformers import SentenceTransformer
+
+      from research_assistant.config.settings import settings
+      from research_assistant.exceptions import EmbeddingError
+
+      logger = logging.getLogger(__name__)
+
+
+      class EmbeddingService:
+          """Service for generating text embeddings."""
+
+          def __init__(
+              self,
+              model_name: str | None = None,
+              device: str | None = None,
+          ) -> None:
+              """Initialize the embedding service.
+
+              Args:
+                  model_name: Name of the sentence transformer model.
+                  device: Device to run model on (cpu, cuda, mps).
+              """
+              self.model_name = model_name or settings.embedding_model
+              self.device = device or settings.embedding_device
+              self._model: SentenceTransformer | None = None
+              logger.info(f"Initialized EmbeddingService with model: {self.model_name}")
+
+          @property
+          def model(self) -> SentenceTransformer:
+              """Lazy load the embedding model."""
+              if self._model is None:
+                  try:
+                      logger.info(f"Loading embedding model: {self.model_name}")
+                      self._model = SentenceTransformer(
+                          self.model_name,
+                          device=self.device,
+                      )
+                      logger.info("Embedding model loaded successfully")
+                  except Exception as e:
+                      raise EmbeddingError(f"Failed to load model {self.model_name}: {e}")
+              return self._model
+
+          def embed_text(self, text: str) -> list[float]:
+              """Generate embedding for a single text.
+
+              Args:
+                  text: Text to embed.
+
+              Returns:
+                  List of floats representing the embedding.
+              """
+              try:
+                  embedding = self.model.encode(text, convert_to_numpy=True)
+                  return embedding.tolist()
+              except Exception as e:
+                  raise EmbeddingError(f"Failed to embed text: {e}")
+
+          def embed_texts(self, texts: list[str]) -> list[list[float]]:
+              """Generate embeddings for multiple texts.
+
+              Args:
+                  texts: List of texts to embed.
+
+              Returns:
+                  List of embeddings.
+              """
+              if not texts:
+                  return []
+
+              try:
+                  logger.debug(f"Embedding {len(texts)} texts")
+                  embeddings = self.model.encode(
+                      texts,
+                      convert_to_numpy=True,
+                      show_progress_bar=len(texts) > 10,
+                  )
+                  return [emb.tolist() for emb in embeddings]
+              except Exception as e:
+                  raise EmbeddingError(f"Failed to embed texts: {e}")
+
+          @property
+          def dimension(self) -> int:
+              """Get the embedding dimension."""
+              return self.model.get_sentence_embedding_dimension()
+
+
+      @lru_cache(maxsize=1)
+      def get_embedding_service() -> EmbeddingService:
+          """Get a cached embedding service instance."""
+          return EmbeddingService()
+
+    verification:
+      command: "python -c \"from research_assistant.vectorstore.embeddings import EmbeddingService; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 7: Vector Store
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/vectorstore/store.py"
+    description: "ChromaDB vector store wrapper"
+    dependencies:
+      - "chromadb>=0.4.0"
+    content: |
+      """Vector store operations using ChromaDB."""
+
+      import logging
+      from pathlib import Path
+      from typing import Optional
+      import chromadb
+      from chromadb.config import Settings as ChromaSettings
+
+      from research_assistant.config.settings import settings
+      from research_assistant.exceptions import VectorStoreError
+      from research_assistant.models.schemas import DocumentChunk, RetrievedDocument
+      from research_assistant.vectorstore.embeddings import get_embedding_service
+
+      logger = logging.getLogger(__name__)
+
+
+      class VectorStore:
+          """ChromaDB vector store for document storage and retrieval."""
+
+          def __init__(
+              self,
+              persist_directory: str | Path | None = None,
+              collection_name: str | None = None,
+          ) -> None:
+              """Initialize the vector store.
+
+              Args:
+                  persist_directory: Directory for persistent storage.
+                  collection_name: Name of the collection to use.
+              """
+              self.persist_directory = Path(persist_directory or settings.chroma_persist_dir)
+              self.collection_name = collection_name or settings.chroma_collection_name
+              self._client: chromadb.ClientAPI | None = None
+              self._collection: chromadb.Collection | None = None
+              self._embedding_service = get_embedding_service()
+
+              # Ensure directory exists
+              self.persist_directory.mkdir(parents=True, exist_ok=True)
+              logger.info(f"Initialized VectorStore at {self.persist_directory}")
+
+          @property
+          def client(self) -> chromadb.ClientAPI:
+              """Get or create the ChromaDB client."""
+              if self._client is None:
+                  try:
+                      self._client = chromadb.PersistentClient(
+                          path=str(self.persist_directory),
+                          settings=ChromaSettings(
+                              anonymized_telemetry=False,
+                          ),
+                      )
+                      logger.info("ChromaDB client initialized")
+                  except Exception as e:
+                      raise VectorStoreError("client_init", str(e))
+              return self._client
+
+          @property
+          def collection(self) -> chromadb.Collection:
+              """Get or create the collection."""
+              if self._collection is None:
+                  try:
+                      self._collection = self.client.get_or_create_collection(
+                          name=self.collection_name,
+                          metadata={"hnsw:space": "cosine"},
+                      )
+                      logger.info(f"Using collection: {self.collection_name}")
+                  except Exception as e:
+                      raise VectorStoreError("collection_init", str(e))
+              return self._collection
+
+          def add_documents(self, chunks: list[DocumentChunk]) -> int:
+              """Add document chunks to the vector store.
+
+              Args:
+                  chunks: List of document chunks to add.
+
+              Returns:
+                  Number of documents added.
+              """
+              if not chunks:
+                  return 0
+
+              try:
+                  # Generate embeddings if not present
+                  texts = [chunk.content for chunk in chunks]
+                  embeddings = self._embedding_service.embed_texts(texts)
+
+                  # Prepare data for ChromaDB
+                  ids = [chunk.id for chunk in chunks]
+                  documents = texts
+                  metadatas = [
+                      {
+                          "source": chunk.metadata.source,
+                          "page": chunk.metadata.page or 0,
+                          "chunk_index": chunk.metadata.chunk_index,
+                          "total_chunks": chunk.metadata.total_chunks,
+                      }
+                      for chunk in chunks
+                  ]
+
+                  # Add to collection
+                  self.collection.add(
+                      ids=ids,
+                      documents=documents,
+                      embeddings=embeddings,
+                      metadatas=metadatas,
+                  )
+
+                  logger.info(f"Added {len(chunks)} documents to vector store")
+                  return len(chunks)
+
+              except Exception as e:
+                  raise VectorStoreError("add_documents", str(e))
+
+          def search(
+              self,
+              query: str,
+              top_k: int | None = None,
+              filter_source: str | None = None,
+          ) -> list[RetrievedDocument]:
+              """Search for similar documents.
+
+              Args:
+                  query: Search query text.
+                  top_k: Number of results to return.
+                  filter_source: Optional source filter.
+
+              Returns:
+                  List of retrieved documents with scores.
+              """
+              top_k = top_k or settings.retrieval_top_k
+
+              try:
+                  # Generate query embedding
+                  query_embedding = self._embedding_service.embed_text(query)
+
+                  # Build where filter if specified
+                  where_filter = None
+                  if filter_source:
+                      where_filter = {"source": filter_source}
+
+                  # Query the collection
+                  results = self.collection.query(
+                      query_embeddings=[query_embedding],
+                      n_results=top_k,
+                      where=where_filter,
+                      include=["documents", "metadatas", "distances"],
+                  )
+
+                  # Convert to RetrievedDocument objects
+                  retrieved = []
+                  if results["documents"] and results["documents"][0]:
+                      for i, doc in enumerate(results["documents"][0]):
+                          metadata = results["metadatas"][0][i] if results["metadatas"] else {}
+                          distance = results["distances"][0][i] if results["distances"] else 0
+
+                          # Convert distance to similarity score (cosine)
+                          score = 1 - distance
+
+                          retrieved.append(
+                              RetrievedDocument(
+                                  content=doc,
+                                  source=metadata.get("source", "unknown"),
+                                  page=metadata.get("page"),
+                                  score=score,
+                              )
+                          )
+
+                  logger.debug(f"Retrieved {len(retrieved)} documents for query")
+                  return retrieved
+
+              except Exception as e:
+                  raise VectorStoreError("search", str(e))
+
+          def delete_by_source(self, source: str) -> int:
+              """Delete all documents from a specific source.
+
+              Args:
+                  source: Source file name to delete.
+
+              Returns:
+                  Number of documents deleted.
+              """
+              try:
+                  # Get IDs for the source
+                  results = self.collection.get(
+                      where={"source": source},
+                      include=[],
+                  )
+
+                  if results["ids"]:
+                      self.collection.delete(ids=results["ids"])
+                      logger.info(f"Deleted {len(results['ids'])} documents from source: {source}")
+                      return len(results["ids"])
+
+                  return 0
+
+              except Exception as e:
+                  raise VectorStoreError("delete_by_source", str(e))
+
+          def get_stats(self) -> dict:
+              """Get vector store statistics.
+
+              Returns:
+                  Dictionary with store statistics.
+              """
+              try:
+                  count = self.collection.count()
+                  return {
+                      "collection_name": self.collection_name,
+                      "document_count": count,
+                      "persist_directory": str(self.persist_directory),
+                  }
+              except Exception as e:
+                  raise VectorStoreError("get_stats", str(e))
+
+          def clear(self) -> None:
+              """Clear all documents from the collection."""
+              try:
+                  self.client.delete_collection(self.collection_name)
+                  self._collection = None
+                  logger.info(f"Cleared collection: {self.collection_name}")
+              except Exception as e:
+                  raise VectorStoreError("clear", str(e))
+
+
+      # Global instance
+      _vector_store: VectorStore | None = None
+
+
+      def get_vector_store() -> VectorStore:
+          """Get the global vector store instance."""
+          global _vector_store
+          if _vector_store is None:
+              _vector_store = VectorStore()
+          return _vector_store
+
+    verification:
+      command: "python -c \"from research_assistant.vectorstore.store import VectorStore; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 8: Document Service
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/services/document_service.py"
+    description: "Document loading and processing"
+    dependencies:
+      - "pypdf>=4.0.0"
+      - "langchain-text-splitters>=0.3.0"
+    content: |
+      """Document loading and processing service."""
+
+      import logging
+      import hashlib
+      from pathlib import Path
+      from typing import BinaryIO
+
+      from langchain_text_splitters import RecursiveCharacterTextSplitter
+      from pypdf import PdfReader
+
+      from research_assistant.config.settings import settings
+      from research_assistant.exceptions import DocumentProcessingError
+      from research_assistant.models.schemas import DocumentChunk, DocumentMetadata
+      from research_assistant.vectorstore.store import get_vector_store
+
+      logger = logging.getLogger(__name__)
+
+
+      class DocumentService:
+          """Service for loading and processing documents."""
+
+          def __init__(self) -> None:
+              """Initialize the document service."""
+              self.text_splitter = RecursiveCharacterTextSplitter(
+                  chunk_size=settings.chunk_size,
+                  chunk_overlap=settings.chunk_overlap,
+                  length_function=len,
+                  separators=["\n\n", "\n", ". ", " ", ""],
+              )
+              self.vector_store = get_vector_store()
+              logger.info("DocumentService initialized")
+
+          def process_pdf(self, file_path: Path | str) -> list[DocumentChunk]:
+              """Process a PDF file into chunks.
+
+              Args:
+                  file_path: Path to the PDF file.
+
+              Returns:
+                  List of document chunks.
+              """
+              file_path = Path(file_path)
+
+              if not file_path.exists():
+                  raise DocumentProcessingError(str(file_path), "File not found")
+
+              if not file_path.suffix.lower() == ".pdf":
+                  raise DocumentProcessingError(str(file_path), "Not a PDF file")
+
+              try:
+                  logger.info(f"Processing PDF: {file_path.name}")
+
+                  # Extract text from PDF
+                  reader = PdfReader(str(file_path))
+                  full_text = ""
+                  page_texts = []
+
+                  for i, page in enumerate(reader.pages):
+                      page_text = page.extract_text() or ""
+                      page_texts.append((i + 1, page_text))
+                      full_text += page_text + "\n\n"
+
+                  if not full_text.strip():
+                      raise DocumentProcessingError(str(file_path), "No text content found")
+
+                  # Split into chunks
+                  chunks = self._create_chunks(
+                      text=full_text,
+                      source=file_path.name,
+                      page_texts=page_texts,
+                  )
+
+                  logger.info(f"Created {len(chunks)} chunks from {file_path.name}")
+                  return chunks
+
+              except DocumentProcessingError:
+                  raise
+              except Exception as e:
+                  raise DocumentProcessingError(str(file_path), str(e))
+
+          def process_text(self, text: str, source_name: str) -> list[DocumentChunk]:
+              """Process plain text into chunks.
+
+              Args:
+                  text: Text content to process.
+                  source_name: Name to use as source.
+
+              Returns:
+                  List of document chunks.
+              """
+              if not text.strip():
+                  raise DocumentProcessingError(source_name, "Empty text content")
+
+              chunks = self._create_chunks(text=text, source=source_name)
+              logger.info(f"Created {len(chunks)} chunks from text: {source_name}")
+              return chunks
+
+          def process_uploaded_file(
+              self,
+              file: BinaryIO,
+              filename: str,
+          ) -> list[DocumentChunk]:
+              """Process an uploaded file.
+
+              Args:
+                  file: File-like object.
+                  filename: Original filename.
+
+              Returns:
+                  List of document chunks.
+              """
+              # Save to upload directory
+              upload_dir = settings.upload_path
+              upload_dir.mkdir(parents=True, exist_ok=True)
+
+              file_path = upload_dir / filename
+
+              with open(file_path, "wb") as f:
+                  f.write(file.read())
+
+              logger.info(f"Saved uploaded file: {file_path}")
+
+              # Process based on extension
+              if filename.lower().endswith(".pdf"):
+                  return self.process_pdf(file_path)
+              elif filename.lower().endswith((".txt", ".md")):
+                  text = file_path.read_text(encoding="utf-8")
+                  return self.process_text(text, filename)
+              else:
+                  raise DocumentProcessingError(filename, "Unsupported file type")
+
+          def ingest_document(self, file_path: Path | str) -> int:
+              """Process and ingest a document into the vector store.
+
+              Args:
+                  file_path: Path to the document.
+
+              Returns:
+                  Number of chunks ingested.
+              """
+              file_path = Path(file_path)
+
+              # Process the document
+              if file_path.suffix.lower() == ".pdf":
+                  chunks = self.process_pdf(file_path)
+              elif file_path.suffix.lower() in (".txt", ".md"):
+                  text = file_path.read_text(encoding="utf-8")
+                  chunks = self.process_text(text, file_path.name)
+              else:
+                  raise DocumentProcessingError(str(file_path), "Unsupported file type")
+
+              # Add to vector store
+              return self.vector_store.add_documents(chunks)
+
+          def ingest_directory(self, directory: Path | str) -> dict:
+              """Ingest all documents from a directory.
+
+              Args:
+                  directory: Directory path.
+
+              Returns:
+                  Dictionary with ingestion statistics.
+              """
+              directory = Path(directory)
+
+              if not directory.is_dir():
+                  raise DocumentProcessingError(str(directory), "Not a directory")
+
+              stats = {"processed": 0, "chunks": 0, "failed": [], "files": []}
+
+              # Find all supported files
+              patterns = ["*.pdf", "*.txt", "*.md"]
+              files = []
+              for pattern in patterns:
+                  files.extend(directory.glob(pattern))
+
+              for file_path in files:
+                  try:
+                      chunks_added = self.ingest_document(file_path)
+                      stats["processed"] += 1
+                      stats["chunks"] += chunks_added
+                      stats["files"].append(file_path.name)
+                  except DocumentProcessingError as e:
+                      logger.error(f"Failed to process {file_path}: {e}")
+                      stats["failed"].append({"file": file_path.name, "error": str(e)})
+
+              logger.info(
+                  f"Ingested {stats['processed']} files, "
+                  f"{stats['chunks']} chunks, "
+                  f"{len(stats['failed'])} failed"
+              )
+              return stats
+
+          def _create_chunks(
+              self,
+              text: str,
+              source: str,
+              page_texts: list[tuple[int, str]] | None = None,
+          ) -> list[DocumentChunk]:
+              """Create document chunks from text.
+
+              Args:
+                  text: Full text content.
+                  source: Source file name.
+                  page_texts: Optional list of (page_num, text) tuples.
+
+              Returns:
+                  List of document chunks.
+              """
+              # Split the text
+              split_texts = self.text_splitter.split_text(text)
+              total_chunks = len(split_texts)
+
+              chunks = []
+              for i, chunk_text in enumerate(split_texts):
+                  # Generate unique ID
+                  chunk_id = hashlib.md5(
+                      f"{source}:{i}:{chunk_text[:50]}".encode()
+                  ).hexdigest()
+
+                  # Determine page number if available
+                  page_num = None
+                  if page_texts:
+                      page_num = self._find_page_for_chunk(chunk_text, page_texts)
+
+                  # Create chunk
+                  chunk = DocumentChunk(
+                      id=chunk_id,
+                      content=chunk_text,
+                      metadata=DocumentMetadata(
+                          source=source,
+                          page=page_num,
+                          chunk_index=i,
+                          total_chunks=total_chunks,
+                      ),
+                  )
+                  chunks.append(chunk)
+
+              return chunks
+
+          def _find_page_for_chunk(
+              self,
+              chunk_text: str,
+              page_texts: list[tuple[int, str]],
+          ) -> int | None:
+              """Find the page number for a chunk.
+
+              Args:
+                  chunk_text: The chunk text to find.
+                  page_texts: List of (page_num, text) tuples.
+
+              Returns:
+                  Page number or None.
+              """
+              # Simple heuristic: find first page containing chunk start
+              chunk_start = chunk_text[:100]
+              for page_num, page_text in page_texts:
+                  if chunk_start in page_text:
+                      return page_num
+              return None
+
+
+      # Global instance
+      _document_service: DocumentService | None = None
+
+
+      def get_document_service() -> DocumentService:
+          """Get the global document service instance."""
+          global _document_service
+          if _document_service is None:
+              _document_service = DocumentService()
+          return _document_service
+
+    verification:
+      command: "python -c \"from research_assistant.services.document_service import DocumentService; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 9: LLM Service
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/services/llm_service.py"
+    description: "LLM interaction service using Ollama"
+    dependencies:
+      - "langchain-ollama>=0.2.0"
+      - "ollama>=0.3.0"
+    content: |
+      """LLM service for interacting with Ollama."""
+
+      import logging
+      from typing import Optional
+
+      from langchain_ollama import ChatOllama
+      from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+
+      from research_assistant.config.settings import settings
+      from research_assistant.exceptions import LLMError
+
+      logger = logging.getLogger(__name__)
+
+
+      class LLMService:
+          """Service for LLM interactions using Ollama."""
+
+          def __init__(
+              self,
+              model: str | None = None,
+              temperature: float | None = None,
+              base_url: str | None = None,
+          ) -> None:
+              """Initialize the LLM service.
+
+              Args:
+                  model: Model name to use.
+                  temperature: Generation temperature.
+                  base_url: Ollama API base URL.
+              """
+              self.model = model or settings.ollama_model
+              self.temperature = temperature if temperature is not None else settings.llm_temperature
+              self.base_url = base_url or settings.ollama_base_url
+
+              self._llm: ChatOllama | None = None
+              logger.info(f"Initialized LLMService with model: {self.model}")
+
+          @property
+          def llm(self) -> ChatOllama:
+              """Get or create the LLM instance."""
+              if self._llm is None:
+                  try:
+                      self._llm = ChatOllama(
+                          model=self.model,
+                          temperature=self.temperature,
+                          base_url=self.base_url,
+                      )
+                      logger.info(f"Created ChatOllama instance: {self.model}")
+                  except Exception as e:
+                      raise LLMError(self.model, f"Failed to initialize: {e}")
+              return self._llm
+
+          def generate(
+              self,
+              prompt: str,
+              system_prompt: str | None = None,
+          ) -> str:
+              """Generate a response from the LLM.
+
+              Args:
+                  prompt: User prompt.
+                  system_prompt: Optional system prompt.
+
+              Returns:
+                  Generated response text.
+              """
+              try:
+                  messages = []
+
+                  if system_prompt:
+                      messages.append(SystemMessage(content=system_prompt))
+
+                  messages.append(HumanMessage(content=prompt))
+
+                  logger.debug(f"Generating response for prompt: {prompt[:100]}...")
+                  response = self.llm.invoke(messages)
+
+                  return response.content
+
+              except Exception as e:
+                  raise LLMError(self.model, f"Generation failed: {e}")
+
+          def generate_with_history(
+              self,
+              prompt: str,
+              history: list[dict],
+              system_prompt: str | None = None,
+          ) -> str:
+              """Generate with conversation history.
+
+              Args:
+                  prompt: Current user prompt.
+                  history: List of {"role": "user"|"assistant", "content": "..."}.
+                  system_prompt: Optional system prompt.
+
+              Returns:
+                  Generated response text.
+              """
+              try:
+                  messages = []
+
+                  if system_prompt:
+                      messages.append(SystemMessage(content=system_prompt))
+
+                  # Add history
+                  for msg in history:
+                      if msg["role"] == "user":
+                          messages.append(HumanMessage(content=msg["content"]))
+                      else:
+                          messages.append(AIMessage(content=msg["content"]))
+
+                  # Add current prompt
+                  messages.append(HumanMessage(content=prompt))
+
+                  response = self.llm.invoke(messages)
+                  return response.content
+
+              except Exception as e:
+                  raise LLMError(self.model, f"Generation with history failed: {e}")
+
+          def is_available(self) -> bool:
+              """Check if the LLM is available.
+
+              Returns:
+                  True if LLM is available.
+              """
+              try:
+                  response = self.generate("Say 'OK' if you can hear me.")
+                  return "OK" in response.upper()
+              except Exception:
+                  return False
+
+
+      # Global instance
+      _llm_service: LLMService | None = None
+
+
+      def get_llm_service() -> LLMService:
+          """Get the global LLM service instance."""
+          global _llm_service
+          if _llm_service is None:
+              _llm_service = LLMService()
+          return _llm_service
+
+    verification:
+      command: "python -c \"from research_assistant.services.llm_service import LLMService; print('OK')\""
+      expected_output: "OK"
+
+  # --------------------------------------------------------------------------
+  # FILE 10: Search Tools
+  # --------------------------------------------------------------------------
+  - file: "src/research_assistant/tools/search_tools.py"
+    description: "Search tools for agents"
+    content: |
+      """Search tools for agents to use."""
+
+      import logging
+      from typing import Optional
+
+      from research_assistant.vectorstore.store import get_vector_store
+      from research_assistant.models.schemas import RetrievedDocument
+      from research_assistant.config.settings import settings
+
+      logger = logging.getLogger(__name__)
+
+
+      def search_documents(
+          query: str,
+          top_k: int | None = None,
+          source_filter: str | None = None,
+      ) -> list[RetrievedDocument]:
+          """Search for relevant documents.
+
+          Args:
+              query: Search query.
+              top_k: Number of results.
+              source_filter: Filter by source document.
+
+          Returns:
+              List of retrieved documents.
+          """
+          vector_store = get_vector_store()
+          return vector_store.search(
+              query=query,
+              top_k=top_k or settings.retrieval_top_k,
+              filter_source=source_filter,
+          )
+
+
+      def format_documents_for_context(
+          documents: list[RetrievedDocument],
+          include_scores: bool = False,
+      ) -> str:
+          """Format retrieved documents for LLM context.
+
+          Args:
+              documents: List of retrieved documents.
+              include_scores: Whether to include similarity scores.
+
+          Returns:
+              Formatted string of documents.
+          """
+          if not documents:
+              return "No relevant documents found."
+
+          formatted_parts = []
+
+          for i, doc in enumerate(documents, 1):
+              header = f"[Document {i}]"
+              if include_scores:
+                  header += f" (Relevance: {doc.score:.2f})"
+
+              source_info = f"Source: {doc.source}"
+              if doc.page:
+                  source_info += f", Page {doc.page}"
+
+              formatted_parts.append(
+                  f"{header}\n{source_info}\n---\n{doc.content}\n"
+              )
+
+          return "\n".join(formatted_parts)
+
+
+      def search_and_format(
+          query: str,
+          top_k: int | None = None,
+          include_scores: bool = True,
+      ) -> tuple[str, list[RetrievedDocument]]:
+          """Search and format documents in one call.
+
+          Args:
+              query: Search query.
+              top_k: Number of results.
+              include_scores: Whether to include scores.
+
+          Returns:
+              Tuple of (formatted string, raw documents).
+          """
+          documents = search_documents(query, top_k)
+          formatted = format_documents_for_context(documents, include_scores)
+          return formatted, documents
+
+    verification:
+      command: "python -c \"from research_assistant.tools.search_tools import search_documents; print('OK')\""
+      expected_output: "OK"
+
+# ============================================================================
+# SECTION 4: AGENT IMPLEMENTATIONS (CONTINUED IN PART 2)
+# ============================================================================
+# Due to size, agent implementations continue in the next section...
+# See: ai-agent-implementation-guide-part2.yaml
+# ============================================================================
+
+implementation_continuation:
+  message: "Agent implementations, LangGraph workflow, and UI continue in Part 2"
+  next_file: "ai-agent-implementation-guide-part2.yaml"

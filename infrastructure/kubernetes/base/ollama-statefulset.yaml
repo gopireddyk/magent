@@ -1,0 +1,148 @@
+# ============================================================================
+# KUBERNETES STATEFULSET - Ollama LLM Server
+# ============================================================================
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ollama
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: ollama
+spec:
+  serviceName: ollama
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: research-assistant
+      app.kubernetes.io/component: ollama
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: research-assistant
+        app.kubernetes.io/component: ollama
+    spec:
+      containers:
+        - name: ollama
+          image: ollama/ollama:latest
+          imagePullPolicy: IfNotPresent
+
+          ports:
+            - name: http
+              containerPort: 11434
+              protocol: TCP
+
+          env:
+            - name: OLLAMA_HOST
+              value: "0.0.0.0"
+
+          resources:
+            requests:
+              cpu: "2000m"
+              memory: "8Gi"
+            limits:
+              cpu: "4000m"
+              memory: "16Gi"
+              # Uncomment for GPU support
+              # nvidia.com/gpu: 1
+
+          volumeMounts:
+            - name: ollama-data
+              mountPath: /root/.ollama
+
+          livenessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /api/tags
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+      # Uncomment for GPU nodes
+      # tolerations:
+      #   - key: "nvidia.com/gpu"
+      #     operator: "Exists"
+      #     effect: "NoSchedule"
+      # nodeSelector:
+      #   accelerator: nvidia-gpu
+
+  volumeClaimTemplates:
+    - metadata:
+        name: ollama-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 50Gi
+
+---
+# ============================================================================
+# SERVICE - Ollama
+# ============================================================================
+apiVersion: v1
+kind: Service
+metadata:
+  name: ollama-svc
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: ollama
+spec:
+  type: ClusterIP
+  ports:
+    - port: 11434
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: ollama
+
+---
+# ============================================================================
+# JOB - Ollama Model Puller (runs once to download models)
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ollama-model-pull
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: ollama-init
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: pull-models
+          image: curlimages/curl:latest
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Waiting for Ollama to be ready..."
+              until curl -s http://ollama-svc:11434/api/tags > /dev/null 2>&1; do
+                echo "Ollama not ready, waiting..."
+                sleep 5
+              done
+              echo "Ollama is ready! Pulling models..."
+
+              # Pull llama3.2
+              curl -X POST http://ollama-svc:11434/api/pull -d '{"name": "llama3.2"}'
+
+              # Pull embedding model
+              curl -X POST http://ollama-svc:11434/api/pull -d '{"name": "nomic-embed-text"}'
+
+              echo "Models pulled successfully!"

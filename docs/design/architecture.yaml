@@ -1,0 +1,726 @@
+# ============================================================================
+# SYSTEM ARCHITECTURE DOCUMENT
+# ============================================================================
+# Project: Student Research Assistant
+# Version: 1.0.0
+# Last Updated: 2024
+# ============================================================================
+
+metadata:
+  document_type: "Architecture Design"
+  version: "1.0.0"
+  status: "Draft"
+  authors:
+    - name: "AI Assistant"
+      role: "Generator"
+
+# ============================================================================
+# SYSTEM OVERVIEW
+# ============================================================================
+system_overview:
+  name: "Student Research Assistant"
+  type: "Multi-Agent AI Application"
+
+  description: |
+    A local-first, privacy-preserving research assistant that uses multiple
+    AI agents orchestrated via LangGraph to help students research and
+    analyze academic documents.
+
+  key_characteristics:
+    - "Local execution (privacy-first)"
+    - "Multi-agent orchestration"
+    - "Vector-based semantic search"
+    - "Stateful workflow management"
+    - "Citation tracking"
+
+# ============================================================================
+# ARCHITECTURE STYLE
+# ============================================================================
+architecture_style:
+  primary: "Event-Driven Agent Architecture"
+  secondary: "Layered Architecture"
+
+  patterns:
+    - name: "Supervisor Pattern"
+      description: "Central orchestrator manages agent execution"
+      usage: "Agent workflow coordination"
+
+    - name: "RAG Pattern"
+      description: "Retrieval Augmented Generation"
+      usage: "Document Q&A pipeline"
+
+    - name: "Repository Pattern"
+      description: "Abstract data access layer"
+      usage: "Vector store operations"
+
+    - name: "State Machine"
+      description: "Explicit state transitions"
+      usage: "LangGraph workflow"
+
+# ============================================================================
+# HIGH-LEVEL ARCHITECTURE
+# ============================================================================
+high_level_architecture:
+
+  layers:
+    - name: "Presentation Layer"
+      components:
+        - "Streamlit Web UI"
+        - "CLI Interface (optional)"
+      responsibilities:
+        - "User interaction"
+        - "Document upload"
+        - "Query input/output"
+        - "Visualization"
+
+    - name: "Application Layer"
+      components:
+        - "LangGraph Workflow Engine"
+        - "Agent Orchestrator"
+        - "Session Manager"
+      responsibilities:
+        - "Workflow execution"
+        - "Agent coordination"
+        - "State management"
+        - "Conversation history"
+
+    - name: "Agent Layer"
+      components:
+        - "Supervisor Agent"
+        - "Researcher Agent"
+        - "Writer Agent"
+        - "Critic Agent"
+      responsibilities:
+        - "Specialized task execution"
+        - "Tool usage"
+        - "LLM interaction"
+
+    - name: "Service Layer"
+      components:
+        - "Document Service"
+        - "Embedding Service"
+        - "Search Service"
+        - "LLM Service"
+      responsibilities:
+        - "Business logic"
+        - "Data processing"
+        - "External integrations"
+
+    - name: "Data Layer"
+      components:
+        - "ChromaDB Vector Store"
+        - "Document Storage"
+        - "Configuration Store"
+      responsibilities:
+        - "Data persistence"
+        - "Vector operations"
+        - "File management"
+
+# ============================================================================
+# COMPONENT ARCHITECTURE
+# ============================================================================
+component_architecture:
+
+  # Document Processing Pipeline
+  document_pipeline:
+    name: "Document Processing Pipeline"
+    flow:
+      - step: 1
+        component: "Document Loader"
+        input: "PDF/Text files"
+        output: "Raw text content"
+        technology: "pypdf, python-docx"
+
+      - step: 2
+        component: "Text Splitter"
+        input: "Raw text"
+        output: "Document chunks"
+        technology: "LangChain TextSplitter"
+        config:
+          chunk_size: 1000
+          chunk_overlap: 200
+
+      - step: 3
+        component: "Embedding Generator"
+        input: "Document chunks"
+        output: "Vector embeddings"
+        technology: "sentence-transformers"
+        model: "all-MiniLM-L6-v2"
+
+      - step: 4
+        component: "Vector Store"
+        input: "Embeddings + metadata"
+        output: "Indexed documents"
+        technology: "ChromaDB"
+
+  # Query Processing Pipeline
+  query_pipeline:
+    name: "Query Processing Pipeline"
+    flow:
+      - step: 1
+        component: "Query Parser"
+        input: "User question"
+        output: "Parsed query"
+
+      - step: 2
+        component: "Query Embedder"
+        input: "Parsed query"
+        output: "Query vector"
+
+      - step: 3
+        component: "Retriever"
+        input: "Query vector"
+        output: "Relevant documents"
+        config:
+          top_k: 5
+          threshold: 0.5
+
+      - step: 4
+        component: "Agent Workflow"
+        input: "Query + Documents"
+        output: "Final response"
+
+  # Agent Workflow
+  agent_workflow:
+    name: "Multi-Agent Workflow"
+    engine: "LangGraph"
+
+    state_schema:
+      question:
+        type: "string"
+        description: "User's research question"
+
+      documents:
+        type: "list[Document]"
+        description: "Retrieved source documents"
+
+      research_notes:
+        type: "string"
+        description: "Researcher agent findings"
+
+      draft_answer:
+        type: "string"
+        description: "Writer agent draft"
+
+      critique:
+        type: "string"
+        description: "Critic agent feedback"
+
+      final_answer:
+        type: "string"
+        description: "Approved response"
+
+      sources:
+        type: "list[Citation]"
+        description: "All citations"
+
+      iteration:
+        type: "integer"
+        description: "Current iteration count"
+
+      next_agent:
+        type: "string"
+        description: "Next agent to execute"
+
+    nodes:
+      - name: "supervisor"
+        type: "decision"
+        function: "route_to_agent"
+        outputs: ["researcher", "writer", "critic", "end"]
+
+      - name: "researcher"
+        type: "agent"
+        function: "research_node"
+        tools: ["vector_search", "extract_facts"]
+
+      - name: "writer"
+        type: "agent"
+        function: "writer_node"
+        tools: ["synthesize", "format_citation"]
+
+      - name: "critic"
+        type: "agent"
+        function: "critic_node"
+        tools: ["fact_check", "evaluate_quality"]
+
+    edges:
+      - from: "START"
+        to: "supervisor"
+
+      - from: "supervisor"
+        to: "researcher"
+        condition: "needs_research"
+
+      - from: "supervisor"
+        to: "writer"
+        condition: "needs_writing"
+
+      - from: "supervisor"
+        to: "critic"
+        condition: "needs_review"
+
+      - from: "supervisor"
+        to: "END"
+        condition: "is_complete"
+
+      - from: "researcher"
+        to: "supervisor"
+
+      - from: "writer"
+        to: "supervisor"
+
+      - from: "critic"
+        to: "supervisor"
+
+# ============================================================================
+# DATA ARCHITECTURE
+# ============================================================================
+data_architecture:
+
+  vector_store:
+    technology: "ChromaDB"
+    type: "Embedded Vector Database"
+
+    collections:
+      - name: "research_documents"
+        description: "Main document collection"
+        schema:
+          id: "string (UUID)"
+          embedding: "float[] (384 dimensions)"
+          content: "string (chunk text)"
+          metadata:
+            source: "string (filename)"
+            page: "integer"
+            chunk_index: "integer"
+            created_at: "datetime"
+            tags: "string[]"
+
+    indexes:
+      - type: "HNSW"
+        metric: "cosine"
+        parameters:
+          M: 16
+          ef_construction: 100
+
+  file_storage:
+    location: "./data/documents"
+    structure:
+      - path: "uploads/"
+        description: "Original uploaded files"
+      - path: "processed/"
+        description: "Processed document cache"
+
+  session_storage:
+    type: "In-memory with optional persistence"
+    data:
+      - "Conversation history"
+      - "User preferences"
+      - "Active collection"
+
+# ============================================================================
+# INTEGRATION ARCHITECTURE
+# ============================================================================
+integration_architecture:
+
+  llm_integration:
+    provider: "Ollama"
+    type: "Local REST API"
+    endpoint: "http://localhost:11434"
+
+    models:
+      primary:
+        name: "llama3.2"
+        purpose: "Agent reasoning"
+        parameters:
+          temperature: 0.7
+          max_tokens: 2048
+
+      embedding:
+        name: "nomic-embed-text"
+        purpose: "Text embeddings"
+        alternative: "sentence-transformers/all-MiniLM-L6-v2"
+
+    fallback:
+      strategy: "Graceful degradation"
+      actions:
+        - "Retry with exponential backoff"
+        - "Switch to smaller model"
+        - "Return error to user"
+
+  embedding_integration:
+    primary:
+      provider: "sentence-transformers"
+      model: "all-MiniLM-L6-v2"
+      type: "Local Python library"
+
+    alternative:
+      provider: "Ollama"
+      model: "nomic-embed-text"
+      type: "Local REST API"
+
+# ============================================================================
+# DEPLOYMENT ARCHITECTURE
+# ============================================================================
+deployment_architecture:
+
+  environments:
+    development:
+      type: "Local"
+      components:
+        - "Python virtual environment"
+        - "Local Ollama instance"
+        - "Embedded ChromaDB"
+        - "Streamlit dev server"
+
+    staging:
+      type: "Docker Compose"
+      components:
+        - "App container"
+        - "Ollama container"
+        - "ChromaDB container"
+        - "Nginx reverse proxy"
+
+    production:
+      type: "Kubernetes"
+      components:
+        - "App deployment (replicas: 2)"
+        - "Ollama StatefulSet"
+        - "ChromaDB StatefulSet"
+        - "Ingress controller"
+        - "Persistent volumes"
+
+  kubernetes_architecture:
+    namespace: "research-assistant"
+
+    workloads:
+      - name: "research-app"
+        type: "Deployment"
+        replicas: 2
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "1Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+
+      - name: "ollama"
+        type: "StatefulSet"
+        replicas: 1
+        resources:
+          requests:
+            cpu: "2000m"
+            memory: "8Gi"
+          limits:
+            cpu: "4000m"
+            memory: "16Gi"
+            nvidia.com/gpu: 1  # Optional GPU
+
+      - name: "chromadb"
+        type: "StatefulSet"
+        replicas: 1
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "2Gi"
+
+    services:
+      - name: "research-app-svc"
+        type: "ClusterIP"
+        port: 8501
+
+      - name: "ollama-svc"
+        type: "ClusterIP"
+        port: 11434
+
+      - name: "chromadb-svc"
+        type: "ClusterIP"
+        port: 8000
+
+    storage:
+      - name: "documents-pvc"
+        size: "10Gi"
+        accessMode: "ReadWriteOnce"
+
+      - name: "vectorstore-pvc"
+        size: "20Gi"
+        accessMode: "ReadWriteOnce"
+
+      - name: "ollama-models-pvc"
+        size: "50Gi"
+        accessMode: "ReadWriteOnce"
+
+# ============================================================================
+# SECURITY ARCHITECTURE
+# ============================================================================
+security_architecture:
+
+  principles:
+    - "Local-first: No data leaves the machine by default"
+    - "Minimal attack surface"
+    - "Input validation at boundaries"
+    - "Secure defaults"
+
+  data_security:
+    at_rest:
+      - "Documents stored locally only"
+      - "No encryption by default (user's responsibility)"
+      - "Optional: Enable filesystem encryption"
+
+    in_transit:
+      - "All local communication"
+      - "HTTPS for Kubernetes ingress"
+      - "mTLS between services (optional)"
+
+  input_validation:
+    file_uploads:
+      - "Validate file type (magic bytes)"
+      - "Enforce size limits"
+      - "Sanitize filenames"
+      - "Scan for malicious content (optional)"
+
+    user_queries:
+      - "Sanitize input strings"
+      - "Limit query length"
+      - "Rate limiting (optional)"
+
+  network_security:
+    development:
+      - "Localhost only bindings"
+
+    kubernetes:
+      - "Network policies"
+      - "Pod security standards"
+      - "Ingress TLS termination"
+
+# ============================================================================
+# OBSERVABILITY ARCHITECTURE
+# ============================================================================
+observability:
+
+  logging:
+    framework: "Python logging"
+    format: "JSON structured logs"
+    levels:
+      - "DEBUG: Detailed agent decisions"
+      - "INFO: Request/response summaries"
+      - "WARNING: Recoverable errors"
+      - "ERROR: Failures requiring attention"
+
+    outputs:
+      development: "Console (colored)"
+      production: "File + stdout"
+
+  metrics:
+    framework: "Prometheus (optional)"
+    metrics:
+      - name: "query_latency_seconds"
+        type: "histogram"
+        description: "Time to process queries"
+
+      - name: "agent_invocations_total"
+        type: "counter"
+        labels: ["agent_name", "status"]
+
+      - name: "documents_processed_total"
+        type: "counter"
+
+      - name: "vector_store_size"
+        type: "gauge"
+
+  tracing:
+    framework: "LangSmith (optional)"
+    features:
+      - "Agent execution traces"
+      - "LLM call details"
+      - "Retrieval analysis"
+
+  health_checks:
+    endpoints:
+      - path: "/health"
+        checks: ["app_running"]
+
+      - path: "/ready"
+        checks: ["ollama_connected", "vectorstore_connected"]
+
+# ============================================================================
+# SCALABILITY CONSIDERATIONS
+# ============================================================================
+scalability:
+
+  horizontal_scaling:
+    app_tier:
+      strategy: "Stateless deployment"
+      considerations:
+        - "Session affinity for conversation context"
+        - "Shared vector store access"
+
+    limitations:
+      - "Single Ollama instance (GPU bound)"
+      - "Vector store write contention"
+
+  vertical_scaling:
+    ollama:
+      - "More VRAM = larger models"
+      - "More CPU = faster CPU inference"
+
+    vector_store:
+      - "More RAM = larger in-memory index"
+      - "SSD = faster disk operations"
+
+  performance_optimization:
+    caching:
+      - "Embedding cache for repeated queries"
+      - "Response cache (optional)"
+
+    batching:
+      - "Batch document processing"
+      - "Batch embedding generation"
+
+# ============================================================================
+# TECHNOLOGY DECISIONS
+# ============================================================================
+technology_decisions:
+
+  - id: "TD-001"
+    decision: "Use LangGraph for agent orchestration"
+    rationale:
+      - "Native support for multi-agent workflows"
+      - "Built-in state management"
+      - "Conditional routing support"
+      - "Active development and community"
+    alternatives_considered:
+      - "AutoGen: More complex, enterprise-focused"
+      - "CrewAI: Less flexible routing"
+      - "Custom: Too much effort"
+
+  - id: "TD-002"
+    decision: "Use ChromaDB for vector storage"
+    rationale:
+      - "Easy to set up and use"
+      - "Good for learning"
+      - "Embedded mode for local development"
+      - "Sufficient for project scale"
+    alternatives_considered:
+      - "FAISS: Lower-level, less features"
+      - "Qdrant: More complex setup"
+      - "Pinecone: Cloud-based, costs money"
+
+  - id: "TD-003"
+    decision: "Use Ollama for local LLM"
+    rationale:
+      - "Free and open source"
+      - "Easy model management"
+      - "Good performance"
+      - "Privacy-preserving"
+    alternatives_considered:
+      - "llama.cpp: Lower-level"
+      - "OpenAI API: Costs money, privacy concerns"
+      - "Hugging Face: More complex setup"
+
+  - id: "TD-004"
+    decision: "Use Streamlit for UI"
+    rationale:
+      - "Rapid development"
+      - "Python-native"
+      - "Built-in components for ML apps"
+      - "Easy to deploy"
+    alternatives_considered:
+      - "Gradio: Similar, different style"
+      - "FastAPI + React: More work"
+      - "Panel: Less popular"
+
+# ============================================================================
+# DIAGRAMS (ASCII)
+# ============================================================================
+diagrams:
+
+  system_context: |
+    ┌─────────────────────────────────────────────────────────────┐
+    │                         STUDENT                              │
+    │                      (Primary User)                          │
+    └─────────────────────────┬───────────────────────────────────┘
+                              │
+                              │ Uploads documents
+                              │ Asks questions
+                              │ Reviews answers
+                              ▼
+    ┌─────────────────────────────────────────────────────────────┐
+    │              STUDENT RESEARCH ASSISTANT                      │
+    │                                                              │
+    │  • Processes academic documents                              │
+    │  • Answers research questions                                │
+    │  • Provides citations                                        │
+    │  • Multi-agent reasoning                                     │
+    └─────────────────────────┬───────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+              ▼               ▼               ▼
+    ┌─────────────┐  ┌─────────────┐  ┌─────────────┐
+    │   Ollama    │  │  ChromaDB   │  │ File System │
+    │   (LLM)     │  │  (Vectors)  │  │ (Documents) │
+    └─────────────┘  └─────────────┘  └─────────────┘
+
+  container_diagram: |
+    ┌──────────────────────────────────────────────────────────────┐
+    │                    RESEARCH ASSISTANT                         │
+    │                                                               │
+    │  ┌─────────────────┐    ┌─────────────────┐                  │
+    │  │   Streamlit UI  │───▶│  LangGraph      │                  │
+    │  │                 │    │  Workflow       │                  │
+    │  │  • Upload       │    │                 │                  │
+    │  │  • Chat         │    │  • Supervisor   │                  │
+    │  │  • Settings     │    │  • Researcher   │                  │
+    │  └─────────────────┘    │  • Writer       │                  │
+    │                         │  • Critic       │                  │
+    │                         └────────┬────────┘                  │
+    │                                  │                            │
+    │         ┌────────────────────────┼────────────────────┐      │
+    │         │                        │                    │      │
+    │         ▼                        ▼                    ▼      │
+    │  ┌─────────────┐         ┌─────────────┐      ┌──────────┐  │
+    │  │  Document   │         │   Search    │      │   LLM    │  │
+    │  │  Service    │         │   Service   │      │  Service │  │
+    │  └──────┬──────┘         └──────┬──────┘      └────┬─────┘  │
+    │         │                       │                   │        │
+    └─────────┼───────────────────────┼───────────────────┼────────┘
+              │                       │                   │
+              ▼                       ▼                   ▼
+    ┌─────────────────┐     ┌─────────────────┐  ┌─────────────────┐
+    │   File System   │     │    ChromaDB     │  │     Ollama      │
+    │   (Documents)   │     │   (Vectors)     │  │     (LLM)       │
+    └─────────────────┘     └─────────────────┘  └─────────────────┘
+
+  agent_workflow: |
+                          START
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │  SUPERVISOR   │◀──────────────────────┐
+                    │               │                       │
+                    │  Decides next │                       │
+                    │  agent/action │                       │
+                    └───────┬───────┘                       │
+                            │                               │
+            ┌───────────────┼───────────────┐               │
+            │               │               │               │
+            ▼               ▼               ▼               │
+    ┌───────────────┐ ┌───────────┐ ┌───────────────┐      │
+    │  RESEARCHER   │ │  WRITER   │ │    CRITIC     │      │
+    │               │ │           │ │               │      │
+    │ • Search docs │ │ • Synth-  │ │ • Fact check  │      │
+    │ • Extract     │ │   esize   │ │ • Quality     │      │
+    │   facts       │ │ • Cite    │ │   review      │      │
+    │ • Find gaps   │ │ • Format  │ │ • Feedback    │      │
+    └───────┬───────┘ └─────┬─────┘ └───────┬───────┘      │
+            │               │               │               │
+            └───────────────┴───────────────┴───────────────┘
+                            │
+                            ▼
+                    ┌───────────────┐
+                    │     END       │
+                    │               │
+                    │ Final Answer  │
+                    │ + Citations   │
+                    └───────────────┘

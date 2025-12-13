@@ -1,0 +1,183 @@
+#cloud-config
+# ============================================================================
+# CLOUD-INIT CONFIGURATION FOR K8S VM
+# ============================================================================
+# Used by Multipass to provision the VM with K3s and Podman
+# Usage: multipass launch --cloud-init cloud-init.yaml
+# ============================================================================
+
+# Update and upgrade packages
+package_update: true
+package_upgrade: true
+
+# Install required packages
+packages:
+  - curl
+  - wget
+  - git
+  - vim
+  - htop
+  - jq
+  - tree
+  - unzip
+  - ca-certificates
+  - gnupg
+  - lsb-release
+  # Container tools
+  - podman
+  - buildah
+  - skopeo
+  # Network tools
+  - net-tools
+  - dnsutils
+  - iputils-ping
+
+# Create users
+users:
+  - default
+  - name: ubuntu
+    groups: sudo
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+# Write files
+write_files:
+  # Podman registries configuration
+  - path: /etc/containers/registries.conf
+    content: |
+      [registries.search]
+      registries = ['docker.io', 'quay.io', 'ghcr.io']
+
+      [registries.insecure]
+      registries = ['localhost:5000', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']
+    owner: root:root
+    permissions: '0644'
+
+  # K3s registries configuration
+  - path: /etc/rancher/k3s/registries.yaml
+    content: |
+      mirrors:
+        "localhost:5000":
+          endpoint:
+            - "http://localhost:5000"
+        "docker.io":
+          endpoint:
+            - "https://registry-1.docker.io"
+    owner: root:root
+    permissions: '0644'
+
+  # Bash aliases for convenience
+  - path: /home/ubuntu/.bash_aliases
+    content: |
+      # Kubernetes aliases
+      alias k='kubectl'
+      alias kn='kubectl -n'
+      alias kg='kubectl get'
+      alias kd='kubectl describe'
+      alias kl='kubectl logs'
+      alias kx='kubectl exec -it'
+
+      # Podman aliases (Docker compatible)
+      alias docker='podman'
+      alias docker-compose='podman-compose'
+
+      # Helpful shortcuts
+      alias pods='kubectl get pods -A'
+      alias nodes='kubectl get nodes'
+      alias svcs='kubectl get svc -A'
+    owner: ubuntu:ubuntu
+    permissions: '0644'
+
+  # Setup script for post-boot configuration
+  - path: /home/ubuntu/setup-k8s.sh
+    content: |
+      #!/bin/bash
+      set -e
+
+      echo "=== Setting up Kubernetes environment ==="
+
+      # Setup kubeconfig for ubuntu user
+      mkdir -p ~/.kube
+      sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+      sudo chown $(id -u):$(id -g) ~/.kube/config
+      chmod 600 ~/.kube/config
+
+      # Add to bashrc if not already present
+      if ! grep -q "KUBECONFIG" ~/.bashrc; then
+        echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+      fi
+
+      # Source bash aliases
+      if ! grep -q "bash_aliases" ~/.bashrc; then
+        echo 'source ~/.bash_aliases' >> ~/.bashrc
+      fi
+
+      echo "=== Setup complete ==="
+      echo "Run: source ~/.bashrc"
+    owner: ubuntu:ubuntu
+    permissions: '0755'
+
+# Commands to run at first boot
+runcmd:
+  # Ensure directories exist
+  - mkdir -p /etc/rancher/k3s
+
+  # Install K3s (lightweight Kubernetes)
+  - curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+
+  # Wait for K3s to be ready
+  - |
+    echo "Waiting for K3s to be ready..."
+    for i in {1..60}; do
+      if /usr/local/bin/k3s kubectl get nodes &>/dev/null; then
+        echo "K3s is ready!"
+        break
+      fi
+      sleep 5
+    done
+
+  # Setup kubeconfig for ubuntu user
+  - mkdir -p /home/ubuntu/.kube
+  - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+  - chown -R ubuntu:ubuntu /home/ubuntu/.kube
+  - chmod 600 /home/ubuntu/.kube/config
+
+  # Configure Podman for rootless operation
+  - |
+    echo "ubuntu:100000:65536" >> /etc/subuid
+    echo "ubuntu:100000:65536" >> /etc/subgid
+
+  # Enable lingering for ubuntu user (allows user services to run without login)
+  - loginctl enable-linger ubuntu || true
+
+  # Create data directories
+  - mkdir -p /data/{documents,vectorstore,ollama}
+  - chown -R ubuntu:ubuntu /data
+
+  # Install podman-compose
+  - pip3 install podman-compose || apt-get install -y podman-compose
+
+  # Print completion message
+  - |
+    echo ""
+    echo "=========================================="
+    echo "VM Setup Complete!"
+    echo "=========================================="
+    echo ""
+    echo "K3s Kubernetes cluster is ready."
+    echo "Podman is installed for container builds."
+    echo ""
+    echo "To use kubectl:"
+    echo "  export KUBECONFIG=/home/ubuntu/.kube/config"
+    echo "  kubectl get nodes"
+    echo ""
+    echo "=========================================="
+
+# Final message
+final_message: |
+  cloud-init completed!
+  K3s Kubernetes: Ready
+  Podman: Installed
+
+  SSH: multipass shell k8s-research
+  Kubeconfig: /home/ubuntu/.kube/config

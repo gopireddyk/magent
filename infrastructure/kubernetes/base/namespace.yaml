@@ -1,0 +1,10 @@
+# ============================================================================
+# KUBERNETES NAMESPACE
+# ============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/part-of: research-assistant

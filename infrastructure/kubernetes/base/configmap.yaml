@@ -1,0 +1,48 @@
+# ============================================================================
+# KUBERNETES CONFIGMAP - Application Configuration
+# ============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: research-assistant-config
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+    app.kubernetes.io/component: config
+data:
+  # LLM Configuration
+  RESEARCH_OLLAMA_BASE_URL: "http://ollama-svc:11434"
+  RESEARCH_OLLAMA_MODEL: "llama3.2"
+  RESEARCH_LLM_TEMPERATURE: "0.7"
+  RESEARCH_LLM_MAX_TOKENS: "2048"
+
+  # Embedding Configuration
+  RESEARCH_EMBEDDING_MODEL: "all-MiniLM-L6-v2"
+  RESEARCH_EMBEDDING_DEVICE: "cpu"
+
+  # Vector Store Configuration
+  RESEARCH_CHROMA_HOST: "chromadb-svc"
+  RESEARCH_CHROMA_PORT: "8000"
+  RESEARCH_CHROMA_COLLECTION: "research_documents"
+
+  # Document Processing
+  RESEARCH_CHUNK_SIZE: "1000"
+  RESEARCH_CHUNK_OVERLAP: "200"
+  RESEARCH_MAX_FILE_SIZE_MB: "50"
+
+  # Agent Configuration
+  RESEARCH_MAX_ITERATIONS: "5"
+  RESEARCH_MAX_REVISIONS: "3"
+  RESEARCH_RETRIEVAL_TOP_K: "5"
+  RESEARCH_RETRIEVAL_THRESHOLD: "0.5"
+
+  # Application Settings
+  RESEARCH_LOG_LEVEL: "INFO"
+  RESEARCH_LOG_JSON: "true"
+  RESEARCH_ENVIRONMENT: "kubernetes"
+  RESEARCH_DEBUG: "false"
+
+  # Streamlit Settings
+  STREAMLIT_SERVER_PORT: "8501"
+  STREAMLIT_SERVER_ADDRESS: "0.0.0.0"
+  STREAMLIT_SERVER_HEADLESS: "true"

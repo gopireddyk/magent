@@ -1,0 +1,712 @@
+# ============================================================================
+# LOCAL KUBERNETES SETUP WITH MULTIPASS AND PODMAN
+# ============================================================================
+# Purpose: Set up a local Kubernetes cluster using Multipass VMs
+# Container Runtime: Podman (rootless, daemonless)
+# VM Provider: Multipass (Ubuntu VMs on any OS)
+# K8s Distribution: K3s (lightweight Kubernetes)
+# ============================================================================
+
+metadata:
+  document_type: "Infrastructure Setup Guide"
+  version: "1.0.0"
+  target: "Local Development Kubernetes Cluster"
+
+# ============================================================================
+# WHY THIS STACK?
+# ============================================================================
+rationale:
+
+  podman_vs_docker:
+    podman_advantages:
+      - "Daemonless - no background service required"
+      - "Rootless - runs without root privileges"
+      - "Docker CLI compatible - same commands work"
+      - "OCI compliant - standard container format"
+      - "No licensing concerns - fully open source"
+      - "Better security model - no root daemon"
+      - "Systemd integration - native Linux service management"
+
+    migration_effort: "Minimal - replace 'docker' with 'podman' in commands"
+
+  multipass_vs_alternatives:
+    multipass_advantages:
+      - "Cross-platform - macOS, Windows, Linux"
+      - "Ubuntu official - maintained by Canonical"
+      - "Simple CLI - easy VM management"
+      - "Cloud-init support - automated provisioning"
+      - "Lightweight - minimal resource overhead"
+      - "Native hypervisor - uses system virtualization"
+
+    alternatives_comparison:
+      - name: "VirtualBox"
+        issue: "Heavy, slower, manual setup"
+      - name: "Vagrant"
+        issue: "Requires VirtualBox/VMware"
+      - name: "Docker Desktop"
+        issue: "Licensing, resource heavy"
+      - name: "Kind"
+        issue: "Docker dependency"
+      - name: "Minikube"
+        issue: "Single node, Docker dependency"
+
+  k3s_vs_k8s:
+    k3s_advantages:
+      - "Lightweight - single binary < 100MB"
+      - "Fast startup - cluster ready in seconds"
+      - "Low resource - runs on 512MB RAM"
+      - "Production ready - certified Kubernetes"
+      - "Built-in components - Traefik, CoreDNS, etc."
+      - "SQLite option - no etcd needed for single node"
+
+# ============================================================================
+# ARCHITECTURE OVERVIEW
+# ============================================================================
+architecture:
+
+  diagram: |
+    ┌─────────────────────────────────────────────────────────────────┐
+    │                     HOST MACHINE                                 │
+    │                (macOS / Windows / Linux)                        │
+    │                                                                  │
+    │  ┌─────────────────────────────────────────────────────────┐   │
+    │  │                    MULTIPASS                              │   │
+    │  │                                                           │   │
+    │  │  ┌─────────────────────────────────────────────────────┐ │   │
+    │  │  │              UBUNTU VM (k8s-master)                  │ │   │
+    │  │  │                                                      │ │   │
+    │  │  │  ┌────────────────────────────────────────────────┐ │ │   │
+    │  │  │  │                K3S CLUSTER                      │ │ │   │
+    │  │  │  │                                                 │ │ │   │
+    │  │  │  │  ┌─────────┐ ┌─────────┐ ┌─────────────────┐  │ │ │   │
+    │  │  │  │  │ Research│ │ Ollama  │ │    ChromaDB     │  │ │ │   │
+    │  │  │  │  │   App   │ │  (LLM)  │ │ (Vector Store)  │  │ │ │   │
+    │  │  │  │  │ (Podman)│ │(Podman) │ │    (Podman)     │  │ │ │   │
+    │  │  │  │  └─────────┘ └─────────┘ └─────────────────┘  │ │ │   │
+    │  │  │  │                                                 │ │ │   │
+    │  │  │  │  Container Runtime: Podman (via CRI-O)         │ │ │   │
+    │  │  │  └────────────────────────────────────────────────┘ │ │   │
+    │  │  │                                                      │ │   │
+    │  │  │  Resources: 4 CPU, 8GB RAM, 40GB Disk              │ │   │
+    │  │  └─────────────────────────────────────────────────────┘ │   │
+    │  │                                                           │   │
+    │  └─────────────────────────────────────────────────────────┘   │
+    │                                                                  │
+    │  Access: kubectl (via kubeconfig), localhost port-forward      │
+    └─────────────────────────────────────────────────────────────────┘
+
+  components:
+    host:
+      - "Multipass CLI"
+      - "kubectl CLI"
+      - "Podman CLI (optional, for local builds)"
+
+    vm:
+      - "Ubuntu 22.04 LTS"
+      - "K3s (Kubernetes)"
+      - "Podman (container runtime)"
+      - "CRI-O (Kubernetes CRI)"
+
+    cluster:
+      - "Research Assistant App"
+      - "Ollama LLM Server"
+      - "ChromaDB Vector Database"
+      - "Traefik Ingress (built into K3s)"
+
+# ============================================================================
+# PREREQUISITES
+# ============================================================================
+prerequisites:
+
+  host_requirements:
+    minimum:
+      cpu: "4 cores"
+      ram: "16GB (8GB for VM)"
+      disk: "50GB free"
+      os: "macOS 10.15+, Windows 10+, Ubuntu 20.04+"
+
+    recommended:
+      cpu: "8 cores"
+      ram: "32GB"
+      disk: "100GB SSD"
+
+  software_installation:
+
+    macos:
+      multipass:
+        command: "brew install multipass"
+        verify: "multipass version"
+
+      podman:
+        command: "brew install podman"
+        verify: "podman --version"
+
+      kubectl:
+        command: "brew install kubectl"
+        verify: "kubectl version --client"
+
+    linux_ubuntu:
+      multipass:
+        commands:
+          - "sudo snap install multipass"
+        verify: "multipass version"
+
+      podman:
+        commands:
+          - "sudo apt-get update"
+          - "sudo apt-get install -y podman"
+        verify: "podman --version"
+
+      kubectl:
+        commands:
+          - "sudo snap install kubectl --classic"
+        verify: "kubectl version --client"
+
+    windows:
+      multipass:
+        command: "winget install Canonical.Multipass"
+        alternative: "Download from https://multipass.run"
+        verify: "multipass version"
+
+      podman:
+        command: "winget install RedHat.Podman"
+        verify: "podman --version"
+
+      kubectl:
+        command: "winget install Kubernetes.kubectl"
+        verify: "kubectl version --client"
+
+# ============================================================================
+# STEP-BY-STEP SETUP
+# ============================================================================
+setup_steps:
+
+  # --------------------------------------------------------------------------
+  # STEP 1: Create Multipass VM
+  # --------------------------------------------------------------------------
+  step_1_create_vm:
+    description: "Create Ubuntu VM with Multipass"
+
+    commands:
+      create_vm: |
+        # Create VM with sufficient resources for K8s + Ollama
+        multipass launch \
+          --name k8s-research \
+          --cpus 4 \
+          --memory 8G \
+          --disk 40G \
+          --cloud-init cloud-init.yaml \
+          22.04
+
+      # Alternative: Simple launch without cloud-init
+      create_vm_simple: |
+        multipass launch \
+          --name k8s-research \
+          --cpus 4 \
+          --memory 8G \
+          --disk 40G \
+          22.04
+
+    cloud_init_file:
+      path: "infrastructure/multipass/cloud-init.yaml"
+      content: |
+        #cloud-config
+        package_update: true
+        package_upgrade: true
+
+        packages:
+          - curl
+          - wget
+          - git
+          - vim
+          - htop
+          - jq
+          - podman
+          - buildah
+          - skopeo
+
+        # Create directory structure
+        runcmd:
+          # Install K3s with Podman/CRI-O support
+          - curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--container-runtime-endpoint unix:///run/crio/crio.sock" sh -
+
+          # Wait for K3s to be ready
+          - sleep 30
+
+          # Make kubeconfig accessible
+          - mkdir -p /home/ubuntu/.kube
+          - cp /etc/rancher/k3s/k3s.yaml /home/ubuntu/.kube/config
+          - chown -R ubuntu:ubuntu /home/ubuntu/.kube
+          - chmod 600 /home/ubuntu/.kube/config
+
+          # Enable Podman socket for Docker compatibility
+          - systemctl --user enable --now podman.socket || true
+
+    verification:
+      - command: "multipass list"
+        expected: "k8s-research Running"
+      - command: "multipass exec k8s-research -- kubectl get nodes"
+        expected: "k8s-research Ready"
+
+  # --------------------------------------------------------------------------
+  # STEP 2: Install K3s with Podman
+  # --------------------------------------------------------------------------
+  step_2_install_k3s:
+    description: "Install K3s Kubernetes with Podman container runtime"
+
+    commands:
+      shell_into_vm: "multipass shell k8s-research"
+
+      install_k3s_with_containerd: |
+        # Default K3s uses containerd (simpler setup)
+        curl -sfL https://get.k3s.io | sh -
+
+        # Wait for K3s
+        sudo k3s kubectl wait --for=condition=Ready node --all --timeout=120s
+
+      setup_kubeconfig: |
+        # Setup kubeconfig for ubuntu user
+        mkdir -p ~/.kube
+        sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+        sudo chown $(id -u):$(id -g) ~/.kube/config
+        chmod 600 ~/.kube/config
+
+        # Add to bashrc
+        echo 'export KUBECONFIG=~/.kube/config' >> ~/.bashrc
+
+      verify_cluster: |
+        kubectl get nodes
+        kubectl get pods -A
+
+    alternative_with_podman:
+      description: "Use Podman as container runtime (advanced)"
+      note: "K3s works best with containerd. Use Podman for building images."
+
+      install_crio: |
+        # Install CRI-O for Kubernetes
+        OS=xUbuntu_22.04
+        CRIO_VERSION=1.28
+
+        echo "deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list
+        echo "deb http://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/ /" | sudo tee /etc/apt/sources.list.d/devel:kubic:libcontainers:stable:cri-o:$CRIO_VERSION.list
+
+        curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/$OS/Release.key | sudo apt-key add -
+        curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable:/cri-o:/$CRIO_VERSION/$OS/Release.key | sudo apt-key add -
+
+        sudo apt-get update
+        sudo apt-get install -y cri-o cri-o-runc
+        sudo systemctl enable --now crio
+
+  # --------------------------------------------------------------------------
+  # STEP 3: Configure Host Access
+  # --------------------------------------------------------------------------
+  step_3_configure_access:
+    description: "Configure kubectl access from host machine"
+
+    commands:
+      get_vm_ip: |
+        # Get VM IP address
+        multipass info k8s-research | grep IPv4
+
+      copy_kubeconfig: |
+        # Copy kubeconfig from VM to host
+        multipass exec k8s-research -- sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/k8s-research-config
+
+      update_kubeconfig: |
+        # Update the server address to VM IP
+        VM_IP=$(multipass info k8s-research --format json | jq -r '.info["k8s-research"].ipv4[0]')
+
+        # Replace localhost with VM IP
+        sed -i '' "s/127.0.0.1/$VM_IP/g" ~/.kube/k8s-research-config
+
+        # Or on Linux:
+        # sed -i "s/127.0.0.1/$VM_IP/g" ~/.kube/k8s-research-config
+
+      use_kubeconfig: |
+        # Option 1: Set as default
+        export KUBECONFIG=~/.kube/k8s-research-config
+
+        # Option 2: Merge with existing config
+        export KUBECONFIG=~/.kube/config:~/.kube/k8s-research-config
+        kubectl config use-context default
+
+      verify_access: |
+        kubectl get nodes
+        kubectl get pods -A
+
+  # --------------------------------------------------------------------------
+  # STEP 4: Install Podman in VM for Building
+  # --------------------------------------------------------------------------
+  step_4_setup_podman:
+    description: "Setup Podman for building container images"
+
+    commands:
+      install_podman: |
+        multipass exec k8s-research -- bash -c '
+          sudo apt-get update
+          sudo apt-get install -y podman buildah skopeo
+
+          # Configure Podman for rootless
+          echo "ubuntu:100000:65536" | sudo tee /etc/subuid
+          echo "ubuntu:100000:65536" | sudo tee /etc/subgid
+
+          # Setup registries
+          mkdir -p ~/.config/containers
+          cat > ~/.config/containers/registries.conf << EOF
+        [registries.search]
+        registries = ["docker.io", "quay.io", "ghcr.io"]
+
+        [registries.insecure]
+        registries = ["localhost:5000"]
+        EOF
+        '
+
+      verify_podman: |
+        multipass exec k8s-research -- podman --version
+        multipass exec k8s-research -- podman info
+
+  # --------------------------------------------------------------------------
+  # STEP 5: Setup Local Registry
+  # --------------------------------------------------------------------------
+  step_5_local_registry:
+    description: "Setup local container registry for K8s"
+
+    commands:
+      deploy_registry: |
+        multipass exec k8s-research -- bash -c '
+          # Run local registry with Podman
+          podman run -d \
+            --name registry \
+            -p 5000:5000 \
+            -v registry-data:/var/lib/registry \
+            --restart always \
+            docker.io/library/registry:2
+        '
+
+      configure_k3s_for_registry: |
+        multipass exec k8s-research -- bash -c '
+          # Add local registry to K3s
+          sudo mkdir -p /etc/rancher/k3s
+          cat << EOF | sudo tee /etc/rancher/k3s/registries.yaml
+        mirrors:
+          "localhost:5000":
+            endpoint:
+              - "http://localhost:5000"
+          "registry.local:5000":
+            endpoint:
+              - "http://localhost:5000"
+        EOF
+
+          # Restart K3s to pick up registry config
+          sudo systemctl restart k3s
+        '
+
+# ============================================================================
+# BUILDING AND DEPLOYING APPLICATION
+# ============================================================================
+application_deployment:
+
+  # --------------------------------------------------------------------------
+  # Build with Podman
+  # --------------------------------------------------------------------------
+  build_with_podman:
+    description: "Build container image using Podman"
+
+    copy_source_to_vm: |
+      # From host, copy project to VM
+      multipass transfer -r ./src k8s-research:/home/ubuntu/research-assistant/
+      multipass transfer ./pyproject.toml k8s-research:/home/ubuntu/research-assistant/
+      multipass transfer ./infrastructure/podman/Containerfile k8s-research:/home/ubuntu/research-assistant/
+
+    build_image: |
+      multipass exec k8s-research -- bash -c '
+        cd /home/ubuntu/research-assistant
+
+        # Build with Podman
+        podman build \
+          -t localhost:5000/research-assistant:latest \
+          -f Containerfile \
+          .
+
+        # Push to local registry
+        podman push localhost:5000/research-assistant:latest
+      '
+
+    verify_image: |
+      multipass exec k8s-research -- bash -c '
+        podman images
+        curl -s http://localhost:5000/v2/_catalog
+      '
+
+  # --------------------------------------------------------------------------
+  # Deploy to K3s
+  # --------------------------------------------------------------------------
+  deploy_to_k3s:
+    description: "Deploy application to K3s cluster"
+
+    create_namespace: |
+      kubectl create namespace research-assistant
+
+    deploy_application: |
+      kubectl apply -k infrastructure/kubernetes/overlays/dev
+
+    verify_deployment: |
+      kubectl -n research-assistant get pods
+      kubectl -n research-assistant get svc
+      kubectl -n research-assistant get pvc
+
+    access_application: |
+      # Port forward to access from host
+      kubectl -n research-assistant port-forward svc/research-app-svc 8501:8501
+
+# ============================================================================
+# MAKEFILE COMMANDS (Updated for Podman/Multipass)
+# ============================================================================
+makefile_updates:
+
+  new_targets: |
+    ##@ Multipass VM Management
+
+    .PHONY: vm-create
+    vm-create: ## Create Multipass VM for K8s
+    	@echo "$(BLUE)Creating Multipass VM...$(NC)"
+    	multipass launch \
+    		--name k8s-research \
+    		--cpus 4 \
+    		--memory 8G \
+    		--disk 40G \
+    		22.04
+    	@echo "$(GREEN)VM created!$(NC)"
+
+    .PHONY: vm-setup
+    vm-setup: ## Setup K3s and Podman in VM
+    	@echo "$(BLUE)Setting up K3s in VM...$(NC)"
+    	multipass exec k8s-research -- bash -c 'curl -sfL https://get.k3s.io | sh -'
+    	multipass exec k8s-research -- bash -c 'sudo apt-get update && sudo apt-get install -y podman'
+    	@$(MAKE) vm-kubeconfig
+    	@echo "$(GREEN)K3s setup complete!$(NC)"
+
+    .PHONY: vm-kubeconfig
+    vm-kubeconfig: ## Copy kubeconfig from VM to host
+    	@echo "$(BLUE)Copying kubeconfig...$(NC)"
+    	@multipass exec k8s-research -- sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/k8s-research-config
+    	@VM_IP=$$(multipass info k8s-research --format json | jq -r '.info["k8s-research"].ipv4[0]'); \
+    		sed -i '' "s/127.0.0.1/$$VM_IP/g" ~/.kube/k8s-research-config 2>/dev/null || \
+    		sed -i "s/127.0.0.1/$$VM_IP/g" ~/.kube/k8s-research-config
+    	@echo "$(GREEN)Kubeconfig ready: ~/.kube/k8s-research-config$(NC)"
+    	@echo "$(YELLOW)Run: export KUBECONFIG=~/.kube/k8s-research-config$(NC)"
+
+    .PHONY: vm-shell
+    vm-shell: ## Shell into VM
+    	multipass shell k8s-research
+
+    .PHONY: vm-start
+    vm-start: ## Start VM
+    	multipass start k8s-research
+
+    .PHONY: vm-stop
+    vm-stop: ## Stop VM
+    	multipass stop k8s-research
+
+    .PHONY: vm-delete
+    vm-delete: ## Delete VM (destructive!)
+    	@echo "$(RED)Deleting VM...$(NC)"
+    	multipass delete k8s-research
+    	multipass purge
+
+    .PHONY: vm-info
+    vm-info: ## Show VM information
+    	multipass info k8s-research
+
+    ##@ Podman Commands
+
+    .PHONY: podman-build
+    podman-build: ## Build image with Podman
+    	@echo "$(BLUE)Building with Podman...$(NC)"
+    	podman build -t $(DOCKER_IMAGE):$(DOCKER_TAG) -f infrastructure/podman/Containerfile .
+
+    .PHONY: podman-run
+    podman-run: ## Run container with Podman
+    	@echo "$(BLUE)Running with Podman...$(NC)"
+    	podman run -p 8501:8501 -v ./data:/app/data $(DOCKER_IMAGE):$(DOCKER_TAG)
+
+    .PHONY: podman-push
+    podman-push: ## Push image to local registry
+    	@echo "$(BLUE)Pushing to local registry...$(NC)"
+    	podman tag $(DOCKER_IMAGE):$(DOCKER_TAG) localhost:5000/$(DOCKER_IMAGE):$(DOCKER_TAG)
+    	podman push localhost:5000/$(DOCKER_IMAGE):$(DOCKER_TAG)
+
+    .PHONY: podman-compose-up
+    podman-compose-up: ## Start services with podman-compose
+    	@echo "$(BLUE)Starting with podman-compose...$(NC)"
+    	podman-compose -f infrastructure/podman/podman-compose.yaml up -d
+
+    .PHONY: podman-compose-down
+    podman-compose-down: ## Stop podman-compose services
+    	podman-compose -f infrastructure/podman/podman-compose.yaml down
+
+    ##@ Quick Start
+
+    .PHONY: local-k8s-setup
+    local-k8s-setup: vm-create vm-setup ## Complete local K8s setup
+    	@echo "$(GREEN)Local Kubernetes cluster ready!$(NC)"
+    	@echo ""
+    	@echo "Next steps:"
+    	@echo "  1. export KUBECONFIG=~/.kube/k8s-research-config"
+    	@echo "  2. kubectl get nodes"
+    	@echo "  3. make k8s-deploy"
+
+# ============================================================================
+# COMPLETE WORKFLOW
+# ============================================================================
+complete_workflow:
+
+  description: "End-to-end workflow from zero to running application"
+
+  steps:
+    - step: 1
+      name: "Install Prerequisites"
+      commands:
+        macos: |
+          brew install multipass podman kubectl jq
+        linux: |
+          sudo snap install multipass
+          sudo apt-get install -y podman kubectl jq
+
+    - step: 2
+      name: "Create and Setup VM"
+      commands: |
+        make vm-create
+        make vm-setup
+        export KUBECONFIG=~/.kube/k8s-research-config
+        kubectl get nodes
+
+    - step: 3
+      name: "Build Application Image"
+      commands: |
+        # Build locally with Podman
+        podman build -t research-assistant:latest -f infrastructure/podman/Containerfile .
+
+        # Or build in VM
+        make vm-shell
+        # Inside VM:
+        podman build -t localhost:5000/research-assistant:latest .
+        podman push localhost:5000/research-assistant:latest
+
+    - step: 4
+      name: "Deploy to Kubernetes"
+      commands: |
+        kubectl apply -k infrastructure/kubernetes/overlays/dev
+        kubectl -n research-assistant get pods -w
+
+    - step: 5
+      name: "Access Application"
+      commands: |
+        # Port forward
+        kubectl -n research-assistant port-forward svc/research-app-svc 8501:8501
+
+        # Open browser
+        open http://localhost:8501
+
+  automation_script:
+    path: "scripts/setup-local-k8s.sh"
+    content: |
+      #!/bin/bash
+      set -e
+
+      echo "🚀 Setting up local Kubernetes cluster..."
+
+      # Check prerequisites
+      command -v multipass >/dev/null 2>&1 || { echo "❌ multipass required"; exit 1; }
+      command -v kubectl >/dev/null 2>&1 || { echo "❌ kubectl required"; exit 1; }
+      command -v podman >/dev/null 2>&1 || { echo "❌ podman required"; exit 1; }
+
+      # Create VM if not exists
+      if ! multipass info k8s-research &>/dev/null; then
+        echo "📦 Creating VM..."
+        multipass launch --name k8s-research --cpus 4 --memory 8G --disk 40G 22.04
+      fi
+
+      # Install K3s
+      echo "☸️ Installing K3s..."
+      multipass exec k8s-research -- bash -c 'curl -sfL https://get.k3s.io | sh -'
+
+      # Wait for K3s
+      echo "⏳ Waiting for K3s..."
+      sleep 30
+      multipass exec k8s-research -- sudo k3s kubectl wait --for=condition=Ready node --all --timeout=120s
+
+      # Setup kubeconfig
+      echo "🔑 Setting up kubeconfig..."
+      mkdir -p ~/.kube
+      multipass exec k8s-research -- sudo cat /etc/rancher/k3s/k3s.yaml > ~/.kube/k8s-research-config
+      VM_IP=$(multipass info k8s-research --format json | jq -r '.info["k8s-research"].ipv4[0]')
+      sed -i.bak "s/127.0.0.1/$VM_IP/g" ~/.kube/k8s-research-config
+
+      echo ""
+      echo "✅ Setup complete!"
+      echo ""
+      echo "To use the cluster:"
+      echo "  export KUBECONFIG=~/.kube/k8s-research-config"
+      echo "  kubectl get nodes"
+
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+troubleshooting:
+
+  vm_issues:
+    - issue: "multipass launch fails"
+      solutions:
+        - "Check virtualization is enabled in BIOS"
+        - "macOS: Ensure Hypervisor.framework access"
+        - "Linux: Check KVM is available (ls /dev/kvm)"
+        - "Windows: Enable Hyper-V or WSL2"
+
+    - issue: "VM runs out of memory"
+      solutions:
+        - "Increase VM memory: multipass set local.k8s-research.memory=12G"
+        - "Stop unused pods in cluster"
+        - "Use smaller Ollama model"
+
+    - issue: "Cannot connect to VM"
+      solutions:
+        - "Check VM is running: multipass list"
+        - "Restart VM: multipass restart k8s-research"
+        - "Check firewall settings"
+
+  podman_issues:
+    - issue: "podman: command not found"
+      solutions:
+        - "macOS: brew install podman && podman machine init && podman machine start"
+        - "Linux: sudo apt-get install podman"
+
+    - issue: "Cannot pull images"
+      solutions:
+        - "Check registries.conf configuration"
+        - "Try with full registry path: docker.io/library/image"
+        - "Check network connectivity"
+
+    - issue: "Permission denied"
+      solutions:
+        - "Setup subuid/subgid for rootless"
+        - "Run: podman system migrate"
+
+  kubernetes_issues:
+    - issue: "kubectl cannot connect"
+      solutions:
+        - "Check KUBECONFIG is set correctly"
+        - "Verify VM IP in kubeconfig matches current VM IP"
+        - "Check K3s is running: multipass exec k8s-research -- sudo systemctl status k3s"
+
+    - issue: "Pods stuck in Pending"
+      solutions:
+        - "Check PVC status: kubectl get pvc"
+        - "Check node resources: kubectl describe node"
+        - "Check events: kubectl get events"
+
+    - issue: "Cannot pull images in K8s"
+      solutions:
+        - "Setup local registry"
+        - "Check registries.yaml in K3s config"
+        - "Use imagePullPolicy: IfNotPresent"
