@@ -1,6 +1,39 @@
 """Main Streamlit application."""
 
 import streamlit as st
+import threading
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+_health_server_started = False
+
+
+class _HealthHandler(BaseHTTPRequestHandler):
+    """Simple /healthz endpoint for k8s probes."""
+
+    def do_GET(self):
+        if self.path == "/healthz":
+            self.send_response(200)
+            self.send_header("Content-type", "text/plain")
+            self.end_headers()
+            self.wfile.write(b"ok")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def start_health_server(port: int = 8500):
+    """Start a lightweight health server on a separate thread."""
+    global _health_server_started
+    if _health_server_started:
+        return
+
+    def _serve():
+        server = HTTPServer(("0.0.0.0", port), _HealthHandler)
+        server.serve_forever()
+
+    thread = threading.Thread(target=_serve, daemon=True)
+    thread.start()
+    _health_server_started = True
 
 from research_assistant.ui.components import render_header, render_sidebar
 from research_assistant.graph import run_research
@@ -11,6 +44,9 @@ def main():
     """Main application entry point."""
     render_header()
     settings = render_sidebar()
+
+    # Start lightweight health endpoint for probes
+    start_health_server()
 
     # Check LLM availability
     llm = get_llm_service()

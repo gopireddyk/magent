@@ -41,6 +41,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: research-assistant-config
+            - secretRef:
+                name: research-assistant-secrets
 
           resources:
             requests:

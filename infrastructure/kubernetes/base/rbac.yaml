@@ -1,0 +1,33 @@
+# ============================================================================
+# RBAC - Minimal permissions for application ServiceAccount
+# ============================================================================
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: research-assistant-role
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: research-assistant-binding
+  namespace: research-assistant
+  labels:
+    app.kubernetes.io/name: research-assistant
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: research-assistant-role
+subjects:
+  - kind: ServiceAccount
+    name: research-assistant
+    namespace: research-assistant

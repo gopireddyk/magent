@@ -5,6 +5,8 @@ from typing import Any
 
 from langgraph.graph import StateGraph, END
 
+from research_assistant.config import get_settings
+from research_assistant.core.exceptions import ResearchAssistantError
 from research_assistant.graph.state import ResearchState
 from research_assistant.graph.nodes import (
     supervisor_node,
@@ -58,16 +60,28 @@ def get_research_workflow():
 def run_research(query: str) -> dict[str, Any]:
     """Run the research workflow."""
     workflow = get_research_workflow()
+    settings = get_settings()
 
     initial_state: ResearchState = {
         "query": query,
         "iteration": 0,
+        "revision_requested": False,
     }
 
-    result = workflow.invoke(initial_state)
-    return {
-        "query": query,
-        "response": result.get("response", ""),
-        "sources": result.get("sources", []),
-        "iterations": result.get("iteration", 0),
-    }
+    try:
+        result = workflow.invoke(initial_state)
+        return {
+            "query": query,
+            "response": result.get("response", ""),
+            "sources": result.get("sources", []),
+            "iterations": result.get("iteration", 0),
+        }
+    except Exception as exc:
+        # Surface error gracefully to callers (UI/CLI)
+        return {
+            "query": query,
+            "response": "",
+            "sources": [],
+            "iterations": initial_state["iteration"],
+            "error": f"Workflow failed: {exc}",
+        }

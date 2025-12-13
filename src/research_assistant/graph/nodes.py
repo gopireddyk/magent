@@ -2,6 +2,7 @@
 
 from typing import Any
 
+from research_assistant.config import get_settings
 from research_assistant.graph.state import ResearchState
 from research_assistant.agents import (
     SupervisorAgent,
@@ -39,6 +40,13 @@ def critic_node(state: ResearchState) -> dict[str, Any]:
 
 def should_continue(state: ResearchState) -> str:
     """Determine if workflow should continue."""
+    settings = get_settings()
+    max_iterations = settings.max_iterations
+
+    # Guardrail: stop if iterations exceed cap
+    if state.get("iteration", 0) >= max_iterations:
+        return "end"
+
     next_agent = state.get("next", "FINISH")
     if next_agent == "FINISH":
         return "end"

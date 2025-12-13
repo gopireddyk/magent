@@ -3,6 +3,7 @@
 from functools import lru_cache
 from langchain_ollama import ChatOllama
 from langchain_core.messages import HumanMessage, SystemMessage
+from tenacity import retry, stop_after_attempt, wait_fixed
 
 from research_assistant.config import get_settings
 from research_assistant.core.exceptions import LLMError
@@ -34,8 +35,9 @@ class LLMService:
                 raise LLMError(f"Failed to initialize LLM: {e}")
         return self._llm
 
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def generate(self, prompt: str, system_prompt: str | None = None) -> str:
-        """Generate a response from the LLM."""
+        """Generate a response from the LLM with basic retry."""
         try:
             messages = []
             if system_prompt:

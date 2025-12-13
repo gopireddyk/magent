@@ -57,12 +57,13 @@ class VectorStore:
         try:
             texts = [chunk.content for chunk in chunks]
             embeddings = self._embedding_service.embed_texts(texts)
+            metadatas = [self._serialize_metadata(chunk.metadata) for chunk in chunks]
 
             self.collection.add(
                 ids=[chunk.id for chunk in chunks],
                 embeddings=embeddings,
                 documents=texts,
-                metadatas=[chunk.metadata.model_dump() for chunk in chunks],
+                metadatas=metadatas,
             )
             return len(chunks)
         except Exception as e:
@@ -93,7 +94,9 @@ class VectorStore:
                 score = 1 - distance  # Convert distance to similarity
 
                 if score >= score_threshold:
-                    metadata_dict = results["metadatas"][0][i]
+                    metadata_dict = self._deserialize_metadata(
+                        results["metadatas"][0][i]
+                    )
                     documents.append(
                         RetrievedDocument(
                             id=doc_id,
@@ -119,6 +122,26 @@ class VectorStore:
         """Clear all documents from the collection."""
         self.client.delete_collection(self.collection_name)
         self._collection = None
+
+    @staticmethod
+    def _serialize_metadata(metadata: DocumentMetadata) -> dict[str, Any]:
+        """Prepare metadata for ChromaDB (datetime -> isoformat)."""
+        serialized = metadata.model_dump()
+        for key, value in list(serialized.items()):
+            if isinstance(value, datetime):
+                serialized[key] = value.isoformat()
+        return serialized
+
+    @staticmethod
+    def _deserialize_metadata(metadata: dict[str, Any]) -> dict[str, Any]:
+        """Convert stored metadata back to types expected by schemas."""
+        if "created_at" in metadata and isinstance(metadata["created_at"], str):
+            try:
+                metadata["created_at"] = datetime.fromisoformat(metadata["created_at"])
+            except ValueError:
+                # Leave as-is; pydantic will attempt parsing
+                pass
+        return metadata
 
 
 @lru_cache

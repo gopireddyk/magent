@@ -16,6 +16,14 @@ class DocumentMetadata(BaseModel):
     total_pages: int | None = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
+    def model_dump(self, **kwargs) -> dict[str, Any]:
+        """Serialize metadata with ISO datetimes for vector store compatibility."""
+        data = super().model_dump(**kwargs)
+        created = data.get("created_at")
+        if isinstance(created, datetime):
+            data["created_at"] = created.isoformat()
+        return data
+
 
 class DocumentChunk(BaseModel):
     """A chunk of a document with its embedding."""
