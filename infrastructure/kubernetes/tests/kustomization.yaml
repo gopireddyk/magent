@@ -1,0 +1,15 @@
+# ============================================================================
+# KUSTOMIZATION - Test Job (manual trigger)
+# ============================================================================
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: research-assistant
+
+commonLabels:
+  app.kubernetes.io/name: research-assistant
+  app.kubernetes.io/component: tests
+  environment: development
+
+resources:
+  - test-job.yaml

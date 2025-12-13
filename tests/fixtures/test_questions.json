@@ -1,0 +1,10 @@
+[
+  {
+    "question": "What is machine learning?",
+    "expected_keywords": ["artificial intelligence", "data", "learn"]
+  },
+  {
+    "question": "How does ML work?",
+    "expected_keywords": ["patterns", "model", "training"]
+  }
+]

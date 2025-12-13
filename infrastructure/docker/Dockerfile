@@ -19,6 +19,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
+WORKDIR /app
+
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -26,11 +28,12 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Copy dependency files
-COPY pyproject.toml ./
-COPY README.md ./
+# Copy project files needed for installation
+COPY pyproject.toml README.md ./
+COPY src/ ./src/
+COPY tests/ ./tests/
 
-# Install dependencies
+# Install production dependencies into venv
 RUN pip install --no-cache-dir -e .
 
 # ============================================================================
@@ -66,9 +69,9 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Set working directory
 WORKDIR /app
 
-# Copy application code
+# Copy application code and tests (tests required for in-cluster test runs)
 COPY --chown=appuser:appgroup src/ ./src/
-COPY --chown=appuser:appgroup config/ ./config/
+COPY --chown=appuser:appgroup tests/ ./tests/
 
 # Create data directories
 RUN mkdir -p /app/data/documents /app/data/vectorstore && \
@@ -99,7 +102,7 @@ FROM production as development
 USER root
 
 # Install development dependencies
-RUN pip install --no-cache-dir pytest pytest-cov black ruff mypy
+RUN pip install --no-cache-dir -e ".[dev]"
 
 # Install additional dev tools
 RUN apt-get update && apt-get install -y --no-install-recommends \

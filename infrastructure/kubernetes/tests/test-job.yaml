@@ -1,0 +1,39 @@
+# ============================================================================
+# JOB - Run pytest inside cluster
+# ============================================================================
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: research-assistant-tests
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: research-assistant
+        app.kubernetes.io/component: tests
+    spec:
+      serviceAccountName: research-assistant
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: pytest
+          image: student-research-assistant:test
+          imagePullPolicy: IfNotPresent
+          command:
+            - pytest
+            - "-q"
+            - "--disable-warnings"
+            - "--maxfail=1"
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
