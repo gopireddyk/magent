@@ -1,0 +1,788 @@
+# ============================================================================
+# PROJECT STRUCTURE & VERSION REFERENCE
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Complete project structure, versions, and storage locations
+# ============================================================================
+# This document provides:
+# - Complete directory tree with descriptions
+# - All version numbers pinned
+# - Storage locations for models, data, caches
+# - File purposes and contents
+# ============================================================================
+
+# ============================================================================
+# VERSION MATRIX
+# ============================================================================
+versions:
+  # Project version
+  project:
+    version: "1.0.0"
+    python_requires: ">=3.10,<3.13"
+    last_updated: "2024-12"
+
+  # Python runtime
+  python:
+    minimum: "3.10"
+    recommended: "3.11"
+    maximum: "3.12"
+
+  # Core framework versions (PINNED)
+  core_dependencies:
+    langchain: ">=0.3.0,<0.4.0"
+    langchain_community: ">=0.3.0,<0.4.0"
+    langchain_core: ">=0.3.0,<0.4.0"
+    langchain_text_splitters: ">=0.3.0,<0.4.0"
+    langgraph: ">=0.2.0,<0.3.0"
+    langchain_ollama: ">=0.2.0,<0.3.0"
+
+  # Database & storage versions
+  storage:
+    chromadb: ">=0.4.0,<0.6.0"
+    sentence_transformers: ">=2.2.0,<3.0.0"
+
+  # LLM provider
+  llm:
+    ollama_package: ">=0.3.0,<1.0.0"
+    ollama_server: ">=0.3.0"
+
+  # Document processing
+  document_processing:
+    pypdf: ">=4.0.0,<5.0.0"
+    python_docx: ">=1.0.0,<2.0.0"
+    unstructured: ">=0.10.0,<1.0.0"
+
+  # UI framework
+  ui:
+    streamlit: ">=1.28.0,<2.0.0"
+
+  # Configuration & utilities
+  utilities:
+    pydantic: ">=2.0.0,<3.0.0"
+    pydantic_settings: ">=2.0.0,<3.0.0"
+    python_dotenv: ">=1.0.0,<2.0.0"
+    pyyaml: ">=6.0.0,<7.0.0"
+    aiofiles: ">=23.0.0,<24.0.0"
+    httpx: ">=0.25.0,<1.0.0"
+    rich: ">=13.0.0,<14.0.0"
+    tenacity: ">=8.0.0,<9.0.0"
+    structlog: ">=23.0.0,<24.0.0"
+
+  # Development tools
+  development:
+    pytest: ">=7.4.0,<8.0.0"
+    pytest_asyncio: ">=0.21.0,<1.0.0"
+    pytest_cov: ">=4.1.0,<5.0.0"
+    pytest_mock: ">=3.12.0,<4.0.0"
+    black: ">=24.0.0,<25.0.0"
+    ruff: ">=0.1.0,<1.0.0"
+    mypy: ">=1.7.0,<2.0.0"
+    pre_commit: ">=3.6.0,<4.0.0"
+
+  # Infrastructure tools
+  infrastructure:
+    podman: ">=4.0.0"
+    multipass: ">=1.12.0"
+    kubectl: ">=1.28.0"
+    k3s: ">=1.28.0"
+    terraform: ">=1.5.0"
+
+  # Container base images
+  container_images:
+    python: "python:3.11-slim"
+    ollama: "ollama/ollama:latest"
+    chromadb: "chromadb/chroma:latest"
+    ubuntu: "22.04"
+
+  # AI models
+  ai_models:
+    llm_primary:
+      name: "llama3.2"
+      version: "latest"
+      size: "~2GB"
+    llm_light:
+      name: "llama3.2:1b"
+      version: "latest"
+      size: "~1.3GB"
+    embedding_primary:
+      name: "all-MiniLM-L6-v2"
+      version: "latest"
+      size: "~90MB"
+      dimensions: 384
+
+# ============================================================================
+# COMPLETE PROJECT DIRECTORY TREE
+# ============================================================================
+directory_tree:
+  description: |
+    Complete directory structure with all files.
+    Legend: [D] = Directory, [F] = File, [G] = Generated/Cache (not in git)
+
+  tree: |
+    student-research-assistant/
+    │
+    ├── [D] src/                              # Source code root
+    │   └── [D] research_assistant/           # Main Python package
+    │       ├── [F] __init__.py               # Package init, version export
+    │       ├── [F] py.typed                  # PEP 561 marker for type hints
+    │       │
+    │       ├── [D] config/                   # Configuration module
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] settings.py           # Pydantic settings class
+    │       │   └── [F] prompts.py            # Agent prompt templates
+    │       │
+    │       ├── [D] core/                     # Core utilities
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] exceptions.py         # Custom exception classes
+    │       │   └── [F] schemas.py            # Pydantic data models
+    │       │
+    │       ├── [D] services/                 # Business logic services
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] embeddings.py         # Embedding model wrapper
+    │       │   ├── [F] vector_store.py       # ChromaDB operations
+    │       │   ├── [F] document_service.py   # Document processing
+    │       │   └── [F] llm_service.py        # Ollama LLM wrapper
+    │       │
+    │       ├── [D] agents/                   # AI agent implementations
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] base.py               # BaseAgent abstract class
+    │       │   ├── [F] supervisor.py         # Supervisor agent
+    │       │   ├── [F] researcher.py         # Researcher agent
+    │       │   ├── [F] writer.py             # Writer agent
+    │       │   └── [F] critic.py             # Critic agent
+    │       │
+    │       ├── [D] tools/                    # Agent tools (LangChain tools)
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] search.py             # Vector search tool
+    │       │   └── [F] document.py           # Document processing tools
+    │       │
+    │       ├── [D] graph/                    # LangGraph workflow
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] state.py              # State schema definition
+    │       │   ├── [F] nodes.py              # Graph node functions
+    │       │   └── [F] workflow.py           # Main workflow graph
+    │       │
+    │       ├── [D] ui/                       # Streamlit UI
+    │       │   ├── [F] __init__.py
+    │       │   ├── [F] app.py                # Main Streamlit application
+    │       │   ├── [F] components.py         # Reusable UI components
+    │       │   └── [D] pages/                # Multi-page app pages
+    │       │       ├── [F] 1_Chat.py         # Chat interface page
+    │       │       ├── [F] 2_Documents.py    # Document management page
+    │       │       └── [F] 3_Settings.py     # Settings page
+    │       │
+    │       └── [F] cli.py                    # CLI interface
+    │
+    ├── [D] tests/                            # Test suite
+    │   ├── [F] __init__.py
+    │   ├── [F] conftest.py                   # Pytest fixtures
+    │   │
+    │   ├── [D] unit/                         # Unit tests
+    │   │   ├── [F] __init__.py
+    │   │   ├── [F] test_settings.py
+    │   │   ├── [F] test_schemas.py
+    │   │   ├── [F] test_embeddings.py
+    │   │   ├── [F] test_vector_store.py
+    │   │   ├── [F] test_document_service.py
+    │   │   ├── [F] test_agents.py
+    │   │   └── [F] test_workflow.py
+    │   │
+    │   ├── [D] integration/                  # Integration tests
+    │   │   ├── [F] __init__.py
+    │   │   ├── [F] test_rag_pipeline.py
+    │   │   ├── [F] test_agent_workflow.py
+    │   │   └── [F] test_ui.py
+    │   │
+    │   └── [D] fixtures/                     # Test data
+    │       ├── [F] sample_document.pdf
+    │       ├── [F] sample_document.txt
+    │       └── [F] test_questions.json
+    │
+    ├── [D] data/                             # Runtime data (gitignored except .gitkeep)
+    │   ├── [D] documents/                    # Uploaded documents
+    │   │   └── [F] .gitkeep
+    │   └── [D] vectorstore/                  # ChromaDB persistent storage
+    │       └── [F] .gitkeep
+    │
+    ├── [D] docs/                             # Documentation
+    │   ├── [F] requirements.yaml             # Project requirements
+    │   ├── [F] external-dependencies.yaml    # External dependencies guide
+    │   ├── [F] naming-conventions.yaml       # Naming conventions
+    │   ├── [F] project-structure.yaml        # This file
+    │   │
+    │   ├── [D] design/                       # Design documents
+    │   │   └── [F] architecture.yaml         # System architecture
+    │   │
+    │   ├── [D] development/                  # Development guides
+    │   │   └── [F] coding-standards.yaml     # Coding standards
+    │   │
+    │   ├── [D] infrastructure/               # Infrastructure docs
+    │   │   └── [F] local-k8s-setup.yaml      # K8s setup guide
+    │   │
+    │   └── [D] implementation/               # Implementation guides
+    │       ├── [F] ai-agent-implementation-guide.yaml       # Part 1: Core
+    │       ├── [F] ai-agent-implementation-guide-part2.yaml # Part 2: Agents
+    │       └── [F] ai-agent-implementation-guide-part3.yaml # Part 3: UI/Tests
+    │
+    ├── [D] infrastructure/                   # Infrastructure as Code
+    │   │
+    │   ├── [D] podman/                       # Podman container configs
+    │   │   ├── [F] Containerfile             # OCI container image
+    │   │   └── [F] podman-compose.yaml       # Local development stack
+    │   │
+    │   ├── [D] docker/                       # Docker configs (compatibility)
+    │   │   ├── [F] Dockerfile                # Docker image
+    │   │   └── [F] docker-compose.yaml       # Docker compose
+    │   │
+    │   ├── [D] multipass/                    # Multipass VM configs
+    │   │   └── [F] cloud-init.yaml           # VM auto-provisioning
+    │   │
+    │   ├── [D] kubernetes/                   # Kubernetes manifests
+    │   │   ├── [D] base/                     # Base manifests
+    │   │   │   ├── [F] kustomization.yaml
+    │   │   │   ├── [F] namespace.yaml
+    │   │   │   ├── [F] configmap.yaml
+    │   │   │   ├── [F] app-deployment.yaml
+    │   │   │   ├── [F] ollama-statefulset.yaml
+    │   │   │   ├── [F] chromadb-statefulset.yaml
+    │   │   │   ├── [F] pvcs.yaml
+    │   │   │   └── [F] ingress.yaml
+    │   │   │
+    │   │   └── [D] overlays/                 # Environment overlays
+    │   │       ├── [D] dev/
+    │   │       │   └── [F] kustomization.yaml
+    │   │       └── [D] prod/
+    │   │           └── [F] kustomization.yaml
+    │   │
+    │   └── [D] terraform/                    # Terraform IaC
+    │       ├── [F] main.tf
+    │       ├── [F] variables.tf
+    │       ├── [F] outputs.tf
+    │       └── [D] modules/
+    │           ├── [D] k8s-cluster/
+    │           └── [D] application/
+    │
+    ├── [D] scripts/                          # Utility scripts
+    │   ├── [F] setup-local-k8s.sh            # One-command K8s setup
+    │   ├── [F] seed_data.py                  # Seed sample data
+    │   └── [F] export_docs.py                # Export documentation
+    │
+    ├── [D] .streamlit/                       # Streamlit config
+    │   └── [F] config.toml                   # UI theme & settings
+    │
+    ├── [G] .venv/                            # Python virtual environment
+    ├── [G] __pycache__/                      # Python bytecode cache
+    ├── [G] .pytest_cache/                    # Pytest cache
+    ├── [G] .mypy_cache/                      # MyPy cache
+    ├── [G] .ruff_cache/                      # Ruff cache
+    ├── [G] htmlcov/                          # Coverage HTML reports
+    ├── [G] dist/                             # Built packages
+    ├── [G] *.egg-info/                       # Egg info
+    │
+    ├── [F] .env.example                      # Environment template
+    ├── [F] .env                              # Local environment (gitignored)
+    ├── [F] .gitignore                        # Git ignore patterns
+    ├── [F] .pre-commit-config.yaml           # Pre-commit hooks config
+    ├── [F] pyproject.toml                    # Project configuration
+    ├── [F] Makefile                          # Build automation
+    └── [F] README.md                         # Project readme
+
+# ============================================================================
+# STORAGE LOCATIONS - WHERE THINGS ARE STORED
+# ============================================================================
+storage_locations:
+
+  # Project data (within project directory)
+  project_data:
+    documents:
+      path: "data/documents/"
+      description: "User-uploaded PDF, TXT, MD files"
+      persistence: "Local filesystem"
+      backup: "User responsibility"
+      gitignored: true
+      max_size: "50MB per file"
+
+    vectorstore:
+      path: "data/vectorstore/"
+      description: "ChromaDB persistent storage (SQLite + parquet)"
+      persistence: "Local filesystem"
+      backup: "User responsibility"
+      gitignored: true
+      structure:
+        - "chroma.sqlite3 - Metadata database"
+        - "*.parquet - Vector embeddings"
+
+  # External storage (outside project directory)
+  external_storage:
+    ollama_models:
+      path_macos: "~/.ollama/models/"
+      path_linux: "~/.ollama/models/"
+      path_windows: "%USERPROFILE%\\.ollama\\models\\"
+      path_container: "/root/.ollama/"
+      description: "Ollama LLM model files"
+      size_estimate: "2GB - 10GB depending on models"
+      models:
+        - name: "llama3.2"
+          size: "~2GB"
+          files: "manifest, blobs (GGUF format)"
+        - name: "llama3.2:1b"
+          size: "~1.3GB"
+        - name: "nomic-embed-text"
+          size: "~274MB"
+
+    huggingface_cache:
+      path_macos: "~/.cache/huggingface/"
+      path_linux: "~/.cache/huggingface/"
+      path_windows: "%USERPROFILE%\\.cache\\huggingface\\"
+      description: "HuggingFace model cache (sentence-transformers)"
+      size_estimate: "100MB - 1GB"
+      environment_override: "HF_HOME"
+      models:
+        - name: "all-MiniLM-L6-v2"
+          path: "hub/models--sentence-transformers--all-MiniLM-L6-v2/"
+          size: "~90MB"
+        - name: "all-mpnet-base-v2"
+          path: "hub/models--sentence-transformers--all-mpnet-base-v2/"
+          size: "~420MB"
+
+    python_packages:
+      path_venv: ".venv/lib/python3.11/site-packages/"
+      path_global_macos: "~/Library/Python/3.11/lib/python/site-packages/"
+      path_global_linux: "~/.local/lib/python3.11/site-packages/"
+      description: "Installed Python packages"
+      size_estimate: "500MB - 1GB"
+
+  # Container/K8s storage
+  container_storage:
+    podman_volumes:
+      documents_data:
+        mount: "/app/data/documents"
+        description: "Document uploads"
+      chroma_data:
+        mount: "/chroma/chroma"
+        description: "ChromaDB data"
+      ollama_data:
+        mount: "/root/.ollama"
+        description: "Ollama models"
+
+    kubernetes_pvcs:
+      research-documents-pvc:
+        size: "10Gi"
+        mount: "/app/data/documents"
+      research-vectorstore-pvc:
+        size: "10Gi"
+        mount: "/app/data/vectorstore"
+      ollama-models-pvc:
+        size: "20Gi"
+        mount: "/root/.ollama"
+      chromadb-data-pvc:
+        size: "10Gi"
+        mount: "/chroma/chroma"
+
+  # VM storage (Multipass)
+  vm_storage:
+    kubeconfig:
+      host_path: "~/.kube/k8s-research-config"
+      vm_path: "/etc/rancher/k3s/k3s.yaml"
+      description: "Kubernetes configuration"
+
+    k3s_data:
+      path: "/var/lib/rancher/k3s/"
+      description: "K3s cluster data"
+
+    data_directory:
+      path: "/data/"
+      description: "Shared data in VM"
+      subdirs:
+        - "/data/documents"
+        - "/data/vectorstore"
+        - "/data/ollama"
+
+# ============================================================================
+# FILE PURPOSES & CONTENTS
+# ============================================================================
+file_purposes:
+
+  # Root configuration files
+  root_files:
+    "pyproject.toml":
+      purpose: "Project metadata, dependencies, tool configuration"
+      sections:
+        - "[project]" - Name, version, description, dependencies
+        - "[project.optional-dependencies]" - Dev, prod dependencies
+        - "[project.scripts]" - CLI entry points
+        - "[build-system]" - Build configuration
+        - "[tool.black]" - Code formatter settings
+        - "[tool.ruff]" - Linter settings
+        - "[tool.mypy]" - Type checker settings
+        - "[tool.pytest]" - Test settings
+        - "[tool.coverage]" - Coverage settings
+
+    ".env.example":
+      purpose: "Template for environment variables"
+      copy_to: ".env"
+      sections:
+        - "LLM Configuration (Ollama)"
+        - "Embedding Configuration"
+        - "Vector Database (ChromaDB)"
+        - "Document Processing"
+        - "Agent Configuration"
+        - "Application Settings"
+        - "Streamlit UI"
+
+    "Makefile":
+      purpose: "Build automation and common commands"
+      sections:
+        - "Development Setup"
+        - "Running the Application"
+        - "Code Quality"
+        - "Testing"
+        - "Data Management"
+        - "Multipass VM Management"
+        - "Podman Container Management"
+        - "Kubernetes Deployment"
+        - "Dependency Verification"
+
+    ".gitignore":
+      purpose: "Git ignore patterns"
+      ignores:
+        - "Python: __pycache__, *.pyc, .venv, dist, *.egg-info"
+        - "IDE: .vscode, .idea"
+        - "Environment: .env"
+        - "Data: data/documents/*, data/vectorstore/*"
+        - "Caches: .pytest_cache, .mypy_cache, .ruff_cache"
+        - "Coverage: htmlcov, .coverage"
+
+  # Source code files
+  source_files:
+    "src/research_assistant/__init__.py":
+      purpose: "Package initialization"
+      exports:
+        - "__version__"
+        - "Settings"
+        - "ResearchGraph"
+
+    "src/research_assistant/config/settings.py":
+      purpose: "Application settings using Pydantic"
+      classes:
+        - "Settings" - Main settings class with env var loading
+
+    "src/research_assistant/config/prompts.py":
+      purpose: "Agent prompt templates"
+      constants:
+        - "SUPERVISOR_SYSTEM_PROMPT"
+        - "RESEARCHER_SYSTEM_PROMPT"
+        - "WRITER_SYSTEM_PROMPT"
+        - "CRITIC_SYSTEM_PROMPT"
+
+    "src/research_assistant/core/schemas.py":
+      purpose: "Pydantic data models"
+      classes:
+        - "Document"
+        - "DocumentChunk"
+        - "SearchResult"
+        - "AgentResponse"
+        - "ChatMessage"
+
+    "src/research_assistant/graph/state.py":
+      purpose: "LangGraph state schema"
+      classes:
+        - "ResearchState" - TypedDict with all state fields
+
+    "src/research_assistant/graph/workflow.py":
+      purpose: "Main LangGraph workflow"
+      classes:
+        - "ResearchGraph" - StateGraph builder and executor
+
+    "src/research_assistant/ui/app.py":
+      purpose: "Main Streamlit application"
+      functions:
+        - "main()" - Entry point
+        - "render_sidebar()"
+        - "render_chat()"
+        - "handle_query()"
+
+  # Infrastructure files
+  infrastructure_files:
+    "infrastructure/podman/Containerfile":
+      purpose: "OCI-compliant container image definition"
+      stages:
+        - "builder" - Install dependencies
+        - "production" - Final minimal image
+      base_image: "python:3.11-slim"
+      exposes: 8501
+
+    "infrastructure/podman/podman-compose.yaml":
+      purpose: "Local development stack"
+      services:
+        - "research-app" - Main application
+        - "ollama" - LLM server
+        - "chromadb" - Vector database
+        - "ollama-init" - Model downloader
+
+    "infrastructure/multipass/cloud-init.yaml":
+      purpose: "VM auto-provisioning configuration"
+      installs:
+        - "K3s (lightweight Kubernetes)"
+        - "Podman, Buildah, Skopeo"
+        - "Development tools"
+
+    "infrastructure/kubernetes/base/kustomization.yaml":
+      purpose: "Kustomize base configuration"
+      resources:
+        - "namespace.yaml"
+        - "configmap.yaml"
+        - "app-deployment.yaml"
+        - "ollama-statefulset.yaml"
+        - "chromadb-statefulset.yaml"
+        - "pvcs.yaml"
+        - "ingress.yaml"
+
+# ============================================================================
+# CONFIGURATION FILES CONTENT
+# ============================================================================
+configuration_templates:
+
+  ".streamlit/config.toml":
+    purpose: "Streamlit UI configuration"
+    content: |
+      [server]
+      port = 8501
+      address = "0.0.0.0"
+      headless = true
+      runOnSave = true
+
+      [browser]
+      gatherUsageStats = false
+
+      [theme]
+      primaryColor = "#1f77b4"
+      backgroundColor = "#ffffff"
+      secondaryBackgroundColor = "#f0f2f6"
+      textColor = "#262730"
+      font = "sans serif"
+
+  ".pre-commit-config.yaml":
+    purpose: "Pre-commit hooks configuration"
+    content: |
+      repos:
+        - repo: https://github.com/pre-commit/pre-commit-hooks
+          rev: v4.5.0
+          hooks:
+            - id: trailing-whitespace
+            - id: end-of-file-fixer
+            - id: check-yaml
+            - id: check-added-large-files
+
+        - repo: https://github.com/psf/black
+          rev: 24.1.0
+          hooks:
+            - id: black
+
+        - repo: https://github.com/astral-sh/ruff-pre-commit
+          rev: v0.1.9
+          hooks:
+            - id: ruff
+              args: [--fix]
+
+        - repo: https://github.com/pre-commit/mirrors-mypy
+          rev: v1.8.0
+          hooks:
+            - id: mypy
+              additional_dependencies: [pydantic>=2.0]
+
+  "tests/conftest.py":
+    purpose: "Pytest fixtures and configuration"
+    fixtures:
+      - "settings" - Test settings instance
+      - "mock_llm" - Mocked LLM client
+      - "mock_embeddings" - Mocked embedding model
+      - "mock_vector_store" - Mocked ChromaDB
+      - "sample_document" - Sample Document object
+      - "sample_chunks" - Sample DocumentChunk list
+      - "research_state" - Initial ResearchState
+
+# ============================================================================
+# SIZE ESTIMATES
+# ============================================================================
+size_estimates:
+
+  disk_space:
+    project_code: "~5MB"
+    python_venv: "500MB - 1GB"
+    ollama_models: "2GB - 10GB"
+    huggingface_models: "100MB - 1GB"
+    chromadb_data: "Varies with documents"
+    documents: "User dependent"
+    total_minimum: "~4GB"
+    total_recommended: "~10GB"
+
+  memory_usage:
+    idle: "~200MB"
+    with_embeddings_loaded: "~500MB"
+    during_llm_inference: "2GB - 8GB"
+    recommended_system_ram: "16GB"
+
+  container_images:
+    research_assistant: "~400MB"
+    ollama: "~1GB (without models)"
+    chromadb: "~500MB"
+    total: "~2GB"
+
+# ============================================================================
+# DEPENDENCY GRAPH
+# ============================================================================
+dependency_graph:
+  description: |
+    How components depend on each other:
+
+    User Request
+         │
+         ▼
+    ┌─────────────┐
+    │ Streamlit UI │ ──────────────────────────────┐
+    └─────────────┘                                │
+         │                                         │
+         ▼                                         │
+    ┌─────────────┐     ┌─────────────┐           │
+    │  Settings   │◄────│  .env file  │           │
+    └─────────────┘     └─────────────┘           │
+         │                                         │
+         ▼                                         │
+    ┌─────────────────────────────────┐           │
+    │       ResearchGraph             │           │
+    │  (LangGraph StateGraph)         │           │
+    └─────────────────────────────────┘           │
+         │                                         │
+         ├──────────────┬──────────────┤          │
+         ▼              ▼              ▼          │
+    ┌─────────┐   ┌─────────┐   ┌─────────┐      │
+    │Supervisor│   │Researcher│   │ Writer  │     │
+    │  Agent  │   │  Agent  │   │  Agent  │      │
+    └─────────┘   └─────────┘   └─────────┘      │
+         │              │              │          │
+         │              ▼              │          │
+         │      ┌─────────────┐       │          │
+         │      │ Critic Agent│       │          │
+         │      └─────────────┘       │          │
+         │              │              │          │
+         └──────────────┼──────────────┘          │
+                        │                          │
+         ┌──────────────┴──────────────┐          │
+         ▼                              ▼          │
+    ┌─────────────┐              ┌─────────────┐  │
+    │ LLM Service │              │Vector Store │  │
+    │  (Ollama)   │              │ (ChromaDB)  │  │
+    └─────────────┘              └─────────────┘  │
+         │                              │          │
+         ▼                              ▼          │
+    ┌─────────────┐              ┌─────────────┐  │
+    │   Ollama    │              │  Embedding  │◄─┘
+    │   Server    │              │   Service   │
+    └─────────────┘              └─────────────┘
+         │                              │
+         ▼                              ▼
+    ┌─────────────┐              ┌─────────────┐
+    │ LLM Models  │              │  Embedding  │
+    │(~/.ollama/) │              │   Models    │
+    └─────────────┘              │(HuggingFace)│
+                                 └─────────────┘
+
+# ============================================================================
+# INITIALIZATION ORDER
+# ============================================================================
+initialization_order:
+  description: |
+    Order in which components should be initialized:
+
+  steps:
+    1:
+      component: "Environment"
+      action: "Load .env file"
+      dependencies: []
+
+    2:
+      component: "Settings"
+      action: "Parse environment variables into Settings class"
+      dependencies: ["Environment"]
+
+    3:
+      component: "Ollama Server"
+      action: "Ensure Ollama is running and models downloaded"
+      dependencies: []
+
+    4:
+      component: "Embedding Service"
+      action: "Load sentence-transformers model"
+      dependencies: ["Settings"]
+
+    5:
+      component: "Vector Store"
+      action: "Initialize ChromaDB client and collection"
+      dependencies: ["Settings", "Embedding Service"]
+
+    6:
+      component: "LLM Service"
+      action: "Initialize Ollama client"
+      dependencies: ["Settings", "Ollama Server"]
+
+    7:
+      component: "Agents"
+      action: "Initialize all agents with LLM and tools"
+      dependencies: ["LLM Service", "Vector Store"]
+
+    8:
+      component: "Research Graph"
+      action: "Build and compile LangGraph workflow"
+      dependencies: ["Agents"]
+
+    9:
+      component: "Streamlit UI"
+      action: "Start web server and render UI"
+      dependencies: ["Research Graph"]
+
+# ============================================================================
+# QUICK REFERENCE - IMPORTANT PATHS
+# ============================================================================
+quick_paths:
+
+  # Source code
+  main_package: "src/research_assistant/"
+  settings: "src/research_assistant/config/settings.py"
+  prompts: "src/research_assistant/config/prompts.py"
+  agents: "src/research_assistant/agents/"
+  workflow: "src/research_assistant/graph/workflow.py"
+  ui_app: "src/research_assistant/ui/app.py"
+  cli: "src/research_assistant/cli.py"
+
+  # Configuration
+  pyproject: "pyproject.toml"
+  env_example: ".env.example"
+  makefile: "Makefile"
+
+  # Data
+  documents: "data/documents/"
+  vectorstore: "data/vectorstore/"
+
+  # Infrastructure
+  containerfile: "infrastructure/podman/Containerfile"
+  compose: "infrastructure/podman/podman-compose.yaml"
+  k8s_base: "infrastructure/kubernetes/base/"
+  cloud_init: "infrastructure/multipass/cloud-init.yaml"
+  setup_script: "scripts/setup-local-k8s.sh"
+
+  # Documentation
+  requirements: "docs/requirements.yaml"
+  architecture: "docs/design/architecture.yaml"
+  naming: "docs/naming-conventions.yaml"
+  dependencies: "docs/external-dependencies.yaml"
+  implementation_guide: "docs/ai-agent-implementation-guide.yaml"
+
+  # External storage
+  ollama_models: "~/.ollama/models/"
+  huggingface_cache: "~/.cache/huggingface/"
+  kubeconfig: "~/.kube/k8s-research-config"
+
+# ============================================================================
+# END OF PROJECT STRUCTURE DOCUMENT
+# ============================================================================
