@@ -11,18 +11,22 @@
 # ============================================================================
 # GAP SUMMARY
 # ============================================================================
+# NOTE: This summary is aligned with docs/CANONICAL-STRUCTURE.yaml
+#       which is the authoritative source for file counts.
+# ============================================================================
 summary:
-  total_files_needed: 47
-  files_exist: 38
-  files_missing: 9
-  directories_missing: 4
+  total_files_needed: 95     # All files in project
+  files_exist: 45            # Documentation, infrastructure, root files
+  files_to_create: 50        # Source code, tests, 2 config files
 
   status_by_category:
-    documentation: "100% Complete (10 files)"
-    infrastructure: "95% Complete (missing minor files)"
-    source_code: "0% Complete (ALL missing)"
-    tests: "0% Complete (ALL missing)"
-    configuration: "80% Complete (missing minor files)"
+    documentation: "100% Complete (15 files)"
+    infrastructure: "100% Complete (20 files)"
+    scripts: "100% Complete (3 files)"
+    root_files: "100% Complete (5 files)"
+    source_code: "0% Complete (33 files TO CREATE)"
+    tests: "0% Complete (15 files TO CREATE)"
+    configuration: "80% Complete (2 files TO CREATE)"
 
 # ============================================================================
 # CATEGORY 1: SOURCE CODE (CRITICAL - 0% COMPLETE)
@@ -219,8 +223,9 @@ source_code:
       lines_estimate: 150
       reference: "docs/ai-agent-implementation-guide-part3.yaml#cli"
 
-  total_source_files: 32
-  total_lines_estimate: 2400
+  # NOTE: Aligned with CANONICAL-STRUCTURE.yaml (33 files including UI pages)
+  total_source_files: 33
+  total_lines_estimate: 2500
 
 # ============================================================================
 # CATEGORY 2: TESTS (CRITICAL - 0% COMPLETE)
@@ -386,63 +391,64 @@ configuration:
   total_lines_estimate: 55
 
 # ============================================================================
-# CATEGORY 4: SCRIPTS (90% COMPLETE)
+# CATEGORY 4: SCRIPTS (100% COMPLETE)
 # ============================================================================
 scripts:
-  status: "MOSTLY COMPLETE"
-  priority: "LOW"
+  status: "COMPLETE"
+  priority: "DONE"
 
   existing_files:
-    - "scripts/setup-local-k8s.sh" # ✓
+    - "scripts/setup-local-k8s.sh"  # ✓
+    - "scripts/seed_data.py"        # ✓ CREATED
+    - "scripts/export_docs.py"      # ✓ CREATED
 
-  missing_files:
-    - file: "scripts/seed_data.py"
-      purpose: "Seed sample documents for testing"
-      lines_estimate: 50
-      description: "Creates sample PDF/TXT documents in data/documents/"
+  missing_files: []
 
-    - file: "scripts/export_docs.py"
-      purpose: "Export chat history or answers"
-      lines_estimate: 40
-      description: "Optional utility script"
-
-  total_missing_script_files: 2
-  total_lines_estimate: 90
+  total_missing_script_files: 0
+  total_lines_estimate: 0
 
 # ============================================================================
-# CATEGORY 5: INFRASTRUCTURE (95% COMPLETE)
+# CATEGORY 5: INFRASTRUCTURE (100% COMPLETE)
 # ============================================================================
 infrastructure:
-  status: "ALMOST COMPLETE"
-  priority: "LOW"
+  status: "COMPLETE"
+  priority: "DONE"
 
   existing_files:
+    # Podman
     - "infrastructure/podman/Containerfile"         # ✓
     - "infrastructure/podman/podman-compose.yaml"   # ✓
+    # Docker
     - "infrastructure/docker/Dockerfile"            # ✓
     - "infrastructure/docker/docker-compose.yaml"   # ✓
+    # Multipass
     - "infrastructure/multipass/cloud-init.yaml"    # ✓
-    - "infrastructure/kubernetes/base/*"            # ✓ (8 files)
-    - "infrastructure/terraform/*"                  # Needs verification
+    # Kubernetes base (8 files)
+    - "infrastructure/kubernetes/base/kustomization.yaml"     # ✓
+    - "infrastructure/kubernetes/base/namespace.yaml"         # ✓
+    - "infrastructure/kubernetes/base/configmap.yaml"         # ✓
+    - "infrastructure/kubernetes/base/app-deployment.yaml"    # ✓
+    - "infrastructure/kubernetes/base/ollama-statefulset.yaml" # ✓
+    - "infrastructure/kubernetes/base/chromadb-statefulset.yaml" # ✓
+    - "infrastructure/kubernetes/base/pvc.yaml"               # ✓
+    - "infrastructure/kubernetes/base/ingress.yaml"           # ✓
+    # Kubernetes overlays
+    - "infrastructure/kubernetes/overlays/dev/kustomization.yaml"  # ✓ EXISTS
+    - "infrastructure/kubernetes/overlays/prod/kustomization.yaml" # ✓ CREATED
+    # Terraform (5 files)
+    - "infrastructure/terraform/main.tf"                      # ✓
+    - "infrastructure/terraform/variables.tf"                 # ✓
+    - "infrastructure/terraform/environments/dev/main.tf"     # ✓
+    - "infrastructure/terraform/modules/kubernetes/main.tf"   # ✓
+    - "infrastructure/terraform/modules/kubernetes/variables.tf" # ✓
+    - "infrastructure/terraform/modules/kubernetes/outputs.tf"   # ✓
 
-  missing_files:
-    - file: "infrastructure/kubernetes/overlays/dev/kustomization.yaml"
-      purpose: "Dev environment overlay"
-      lines_estimate: 15
-      status: "May exist, needs verification"
-
-    - file: "infrastructure/kubernetes/overlays/prod/kustomization.yaml"
-      purpose: "Production environment overlay"
-      lines_estimate: 20
-
-    - file: "infrastructure/kubernetes/base/secrets.yaml"
-      purpose: "K8s secrets template (optional)"
-      lines_estimate: 15
+  missing_files: []
 
   notes:
-    - "Most infrastructure files exist"
+    - "All infrastructure files exist and are complete"
     - "May need minor adjustments after source code is created"
-    - "Service account and RBAC might be needed for production"
+    - "See CANONICAL-STRUCTURE.yaml for authoritative file list"
 
 # ============================================================================
 # CATEGORY 6: DOCUMENTATION (100% COMPLETE)
@@ -452,21 +458,32 @@ documentation:
   priority: "DONE"
 
   existing_files:
+    # Root docs
     - "README.md"
-    - "requirements.yaml"
-    - "docs/design/architecture.yaml"
-    - "docs/development/coding-standards.yaml"
+    - "docs/requirements.yaml"
+    # Implementation guides
     - "docs/ai-agent-implementation-guide.yaml"
     - "docs/ai-agent-implementation-guide-part2.yaml"
     - "docs/ai-agent-implementation-guide-part3.yaml"
-    - "docs/infrastructure/local-k8s-setup.yaml"
+    # Project planning
+    - "docs/CANONICAL-STRUCTURE.yaml"        # ✓ CREATED - Source of truth
+    - "docs/implementation-gaps.yaml"        # This file
+    - "docs/implementation-files.yaml"       # ✓ CREATED
+    - "docs/test-templates.yaml"             # ✓ CREATED
+    # Dependencies & standards
     - "docs/external-dependencies.yaml"
     - "docs/naming-conventions.yaml"
     - "docs/project-structure.yaml"
-    - "docs/implementation-gaps.yaml"  # This file
+    # Nested docs
+    - "docs/design/architecture.yaml"
+    - "docs/development/coding-standards.yaml"
+    - "docs/infrastructure/local-k8s-setup.yaml"
 
   missing_files: []
-  notes: "All documentation is complete"
+  notes: |
+    All documentation is complete.
+    CANONICAL-STRUCTURE.yaml is the authoritative source for file structure.
+    When conflicts arise between docs, CANONICAL-STRUCTURE.yaml wins.
 
 # ============================================================================
 # IMPLEMENTATION ORDER (RECOMMENDED)
@@ -578,35 +595,43 @@ implementation_order:
     priority: "LOW"
     files:
       - ".pre-commit-config.yaml"
-      - "scripts/seed_data.py"
+      # NOTE: scripts/seed_data.py and scripts/export_docs.py already exist
     verification: "pre-commit run --all-files"
 
 # ============================================================================
-# FILE COUNT SUMMARY
+# FILE COUNT SUMMARY (Aligned with CANONICAL-STRUCTURE.yaml)
 # ============================================================================
 file_count_summary:
-  source_code:
-    missing: 32
-    lines: 2400
-  tests:
-    missing: 15
-    lines: 1050
-  configuration:
-    missing: 2
-    lines: 55
-  scripts:
-    missing: 2
-    lines: 90
-  infrastructure:
-    missing: 2
-    lines: 50
-  documentation:
-    missing: 0
-    lines: 0
+  # Files TO CREATE (source + tests + config)
+  to_create:
+    source_code:
+      count: 33
+      lines: 2500
+    tests:
+      count: 15
+      lines: 1050
+    configuration:
+      count: 2
+      lines: 55
+    subtotal:
+      count: 50
+      lines: 3605
 
+  # Files ALREADY EXIST
+  existing:
+    infrastructure: 20
+    scripts: 3
+    root_files: 5
+    data_gitkeeps: 2
+    documentation: 15
+    subtotal: 45
+
+  # Grand totals
   total:
-    files_missing: 53
-    lines_to_write: 3645
+    all_project_files: 95
+    files_to_create: 50
+    files_exist: 45
+    lines_to_write: 3605
 
 # ============================================================================
 # QUICK START FOR AI IMPLEMENTATION

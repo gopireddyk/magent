@@ -1,0 +1,492 @@
+# ============================================================================
+# CANONICAL PROJECT STRUCTURE - SINGLE SOURCE OF TRUTH
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: AUTHORITATIVE structure that supersedes all other documents
+# ============================================================================
+# IMPORTANT: This document resolves ALL conflicts between other docs.
+# When in doubt, THIS document is correct.
+# ============================================================================
+
+version: "1.0.0"
+last_updated: "2024-12"
+
+# ============================================================================
+# CONFLICT RESOLUTION
+# ============================================================================
+conflict_resolution:
+  description: |
+    Several documentation files have conflicting structures. This document
+    establishes the CANONICAL structure that MUST be used.
+
+  resolved_conflicts:
+    - conflict: "Module naming: models/ vs core/"
+      resolution: "Use 'core/' for exceptions and schemas"
+      reason: "More descriptive and aligns with common Python patterns"
+
+    - conflict: "Module naming: vectorstore/ vs services/"
+      resolution: "Use 'services/' for all service classes including vector store"
+      reason: "All business logic services in one place"
+
+    - conflict: "Tool naming: search_tools.py vs search.py"
+      resolution: "Use 'search.py'"
+      reason: "Simpler, consistent with other tool files"
+
+    - conflict: "File naming: pvc.yaml vs pvcs.yaml"
+      resolution: "Use 'pvc.yaml' (singular, matches actual file)"
+      reason: "Matches what exists in repository"
+
+    - conflict: "File count in implementation-gaps.yaml"
+      resolution: "Correct count is 45 missing files total"
+      reason: "Recounted based on canonical structure"
+
+    - conflict: "Version pinning: lower bounds vs ranges"
+      resolution: "Use lower bounds (>=X.Y.Z) in pyproject.toml"
+      reason: "Allows flexibility while ensuring minimum compatibility"
+
+# ============================================================================
+# CANONICAL DIRECTORY STRUCTURE
+# ============================================================================
+canonical_structure:
+  description: |
+    This is the EXACT directory structure to create.
+    Run 'make create-structure' to create it automatically.
+
+  tree: |
+    student-research-assistant/
+    ├── src/
+    │   └── research_assistant/
+    │       ├── __init__.py              # Package init
+    │       ├── py.typed                 # PEP 561 marker
+    │       ├── cli.py                   # CLI interface
+    │       │
+    │       ├── config/                  # Configuration
+    │       │   ├── __init__.py
+    │       │   ├── settings.py          # Pydantic settings
+    │       │   └── prompts.py           # Agent prompts
+    │       │
+    │       ├── core/                    # Core utilities
+    │       │   ├── __init__.py
+    │       │   ├── exceptions.py        # Custom exceptions
+    │       │   └── schemas.py           # Pydantic models
+    │       │
+    │       ├── services/                # Business logic
+    │       │   ├── __init__.py
+    │       │   ├── embeddings.py        # Embedding service
+    │       │   ├── vector_store.py      # ChromaDB service
+    │       │   ├── document_service.py  # Document processing
+    │       │   └── llm_service.py       # Ollama LLM service
+    │       │
+    │       ├── agents/                  # AI agents
+    │       │   ├── __init__.py
+    │       │   ├── base.py              # Base agent class
+    │       │   ├── supervisor.py        # Supervisor agent
+    │       │   ├── researcher.py        # Researcher agent
+    │       │   ├── writer.py            # Writer agent
+    │       │   └── critic.py            # Critic agent
+    │       │
+    │       ├── tools/                   # Agent tools
+    │       │   ├── __init__.py
+    │       │   ├── search.py            # Vector search tool
+    │       │   └── document.py          # Document tools
+    │       │
+    │       ├── graph/                   # LangGraph workflow
+    │       │   ├── __init__.py
+    │       │   ├── state.py             # State schema
+    │       │   ├── nodes.py             # Node functions
+    │       │   └── workflow.py          # Main workflow
+    │       │
+    │       └── ui/                      # Streamlit UI
+    │           ├── __init__.py
+    │           ├── app.py               # Main app
+    │           ├── components.py        # UI components
+    │           └── pages/               # Multi-page app
+    │               ├── 1_Chat.py
+    │               ├── 2_Documents.py
+    │               └── 3_Settings.py
+    │
+    ├── tests/
+    │   ├── __init__.py
+    │   ├── conftest.py                  # Pytest fixtures
+    │   ├── unit/
+    │   │   ├── __init__.py
+    │   │   ├── test_settings.py
+    │   │   ├── test_schemas.py
+    │   │   ├── test_embeddings.py
+    │   │   ├── test_vector_store.py
+    │   │   ├── test_document_service.py
+    │   │   ├── test_agents.py
+    │   │   └── test_workflow.py
+    │   ├── integration/
+    │   │   ├── __init__.py
+    │   │   ├── test_rag_pipeline.py
+    │   │   └── test_agent_workflow.py
+    │   └── fixtures/
+    │       ├── sample_document.txt
+    │       └── test_questions.json
+    │
+    ├── data/
+    │   ├── documents/
+    │   │   └── .gitkeep
+    │   └── vectorstore/
+    │       └── .gitkeep
+    │
+    ├── scripts/
+    │   ├── setup-local-k8s.sh           # K8s setup
+    │   ├── seed_data.py                 # Seed documents
+    │   └── export_docs.py               # Export utility
+    │
+    ├── infrastructure/
+    │   ├── podman/
+    │   │   ├── Containerfile
+    │   │   └── podman-compose.yaml
+    │   ├── docker/
+    │   │   ├── Dockerfile
+    │   │   └── docker-compose.yaml
+    │   ├── multipass/
+    │   │   └── cloud-init.yaml
+    │   ├── kubernetes/
+    │   │   ├── base/
+    │   │   │   ├── kustomization.yaml
+    │   │   │   ├── namespace.yaml
+    │   │   │   ├── configmap.yaml
+    │   │   │   ├── app-deployment.yaml
+    │   │   │   ├── ollama-statefulset.yaml
+    │   │   │   ├── chromadb-statefulset.yaml
+    │   │   │   ├── pvc.yaml              # NOTE: singular, not pvcs.yaml
+    │   │   │   └── ingress.yaml
+    │   │   └── overlays/
+    │   │       ├── dev/
+    │   │       │   └── kustomization.yaml
+    │   │       └── prod/
+    │   │           └── kustomization.yaml
+    │   └── terraform/
+    │       ├── main.tf
+    │       ├── variables.tf
+    │       ├── environments/
+    │       │   └── dev/
+    │       │       └── terraform.tfvars
+    │       └── modules/
+    │           └── kubernetes/
+    │               ├── main.tf
+    │               ├── variables.tf
+    │               └── outputs.tf
+    │
+    ├── docs/
+    │   ├── CANONICAL-STRUCTURE.yaml     # THIS FILE - source of truth
+    │   ├── requirements.yaml
+    │   ├── implementation-gaps.yaml
+    │   ├── implementation-files.yaml
+    │   ├── test-templates.yaml
+    │   ├── external-dependencies.yaml
+    │   ├── naming-conventions.yaml
+    │   ├── project-structure.yaml
+    │   ├── ai-agent-implementation-guide.yaml
+    │   ├── ai-agent-implementation-guide-part2.yaml
+    │   ├── ai-agent-implementation-guide-part3.yaml
+    │   ├── design/
+    │   │   └── architecture.yaml
+    │   ├── development/
+    │   │   └── coding-standards.yaml
+    │   └── infrastructure/
+    │       └── local-k8s-setup.yaml
+    │
+    ├── .streamlit/
+    │   └── config.toml
+    │
+    ├── .env.example
+    ├── .gitignore
+    ├── .pre-commit-config.yaml
+    ├── pyproject.toml
+    ├── Makefile
+    └── README.md
+
+# ============================================================================
+# CANONICAL FILE LIST
+# ============================================================================
+file_manifest:
+  description: |
+    Complete list of all files in the project with their status.
+
+  source_code:
+    total_files: 28
+    status: "TO BE CREATED"
+    files:
+      - "src/research_assistant/__init__.py"
+      - "src/research_assistant/py.typed"
+      - "src/research_assistant/cli.py"
+      - "src/research_assistant/config/__init__.py"
+      - "src/research_assistant/config/settings.py"
+      - "src/research_assistant/config/prompts.py"
+      - "src/research_assistant/core/__init__.py"
+      - "src/research_assistant/core/exceptions.py"
+      - "src/research_assistant/core/schemas.py"
+      - "src/research_assistant/services/__init__.py"
+      - "src/research_assistant/services/embeddings.py"
+      - "src/research_assistant/services/vector_store.py"
+      - "src/research_assistant/services/document_service.py"
+      - "src/research_assistant/services/llm_service.py"
+      - "src/research_assistant/agents/__init__.py"
+      - "src/research_assistant/agents/base.py"
+      - "src/research_assistant/agents/supervisor.py"
+      - "src/research_assistant/agents/researcher.py"
+      - "src/research_assistant/agents/writer.py"
+      - "src/research_assistant/agents/critic.py"
+      - "src/research_assistant/tools/__init__.py"
+      - "src/research_assistant/tools/search.py"
+      - "src/research_assistant/tools/document.py"
+      - "src/research_assistant/graph/__init__.py"
+      - "src/research_assistant/graph/state.py"
+      - "src/research_assistant/graph/nodes.py"
+      - "src/research_assistant/graph/workflow.py"
+      - "src/research_assistant/ui/__init__.py"
+      - "src/research_assistant/ui/app.py"
+      - "src/research_assistant/ui/components.py"
+      - "src/research_assistant/ui/pages/1_Chat.py"
+      - "src/research_assistant/ui/pages/2_Documents.py"
+      - "src/research_assistant/ui/pages/3_Settings.py"
+
+  tests:
+    total_files: 13
+    status: "TO BE CREATED"
+    files:
+      - "tests/__init__.py"
+      - "tests/conftest.py"
+      - "tests/unit/__init__.py"
+      - "tests/unit/test_settings.py"
+      - "tests/unit/test_schemas.py"
+      - "tests/unit/test_embeddings.py"
+      - "tests/unit/test_vector_store.py"
+      - "tests/unit/test_document_service.py"
+      - "tests/unit/test_agents.py"
+      - "tests/unit/test_workflow.py"
+      - "tests/integration/__init__.py"
+      - "tests/integration/test_rag_pipeline.py"
+      - "tests/integration/test_agent_workflow.py"
+      - "tests/fixtures/sample_document.txt"
+      - "tests/fixtures/test_questions.json"
+
+  configuration:
+    total_files: 2
+    status: "TO BE CREATED"
+    files:
+      - ".streamlit/config.toml"
+      - ".pre-commit-config.yaml"
+
+  existing_files:
+    infrastructure:
+      - "infrastructure/podman/Containerfile"
+      - "infrastructure/podman/podman-compose.yaml"
+      - "infrastructure/docker/Dockerfile"
+      - "infrastructure/docker/docker-compose.yaml"
+      - "infrastructure/multipass/cloud-init.yaml"
+      - "infrastructure/kubernetes/base/kustomization.yaml"
+      - "infrastructure/kubernetes/base/namespace.yaml"
+      - "infrastructure/kubernetes/base/configmap.yaml"
+      - "infrastructure/kubernetes/base/app-deployment.yaml"
+      - "infrastructure/kubernetes/base/ollama-statefulset.yaml"
+      - "infrastructure/kubernetes/base/chromadb-statefulset.yaml"
+      - "infrastructure/kubernetes/base/pvc.yaml"
+      - "infrastructure/kubernetes/base/ingress.yaml"
+      - "infrastructure/kubernetes/overlays/dev/kustomization.yaml"
+      - "infrastructure/kubernetes/overlays/prod/kustomization.yaml"
+      - "infrastructure/terraform/main.tf"
+      - "infrastructure/terraform/variables.tf"
+      - "infrastructure/terraform/modules/kubernetes/main.tf"
+      - "infrastructure/terraform/modules/kubernetes/variables.tf"
+      - "infrastructure/terraform/modules/kubernetes/outputs.tf"
+
+    scripts:
+      - "scripts/setup-local-k8s.sh"
+      - "scripts/seed_data.py"
+      - "scripts/export_docs.py"
+
+    root_files:
+      - ".env.example"
+      - ".gitignore"
+      - "pyproject.toml"
+      - "Makefile"
+      - "README.md"
+
+    data:
+      - "data/documents/.gitkeep"
+      - "data/vectorstore/.gitkeep"
+
+# ============================================================================
+# CORRECT FILE COUNTS
+# ============================================================================
+file_counts:
+  description: "Accurate file counts for implementation planning"
+
+  to_create:
+    source_code: 33
+    tests: 15
+    configuration: 2
+    total: 50
+
+  existing:
+    infrastructure: 20
+    scripts: 3
+    root_files: 5
+    data: 2
+    documentation: 15
+    total: 45
+
+  grand_total: 95
+
+# ============================================================================
+# IMPORT MAPPING
+# ============================================================================
+import_mapping:
+  description: |
+    Canonical import statements for all modules.
+    Use THESE imports, not alternatives from other docs.
+
+  examples:
+    settings: |
+      from research_assistant.config.settings import Settings
+      # NOT: from research_assistant.config import settings
+
+    schemas: |
+      from research_assistant.core.schemas import Document, DocumentChunk, SearchResult
+      # NOT: from research_assistant.models.schemas import ...
+
+    services: |
+      from research_assistant.services.embeddings import EmbeddingService
+      from research_assistant.services.vector_store import VectorStoreService
+      from research_assistant.services.document_service import DocumentService
+      from research_assistant.services.llm_service import LLMService
+      # NOT: from research_assistant.vectorstore.embeddings import ...
+
+    agents: |
+      from research_assistant.agents.supervisor import SupervisorAgent
+      from research_assistant.agents.researcher import ResearcherAgent
+      from research_assistant.agents.writer import WriterAgent
+      from research_assistant.agents.critic import CriticAgent
+
+    tools: |
+      from research_assistant.tools.search import vector_search
+      # NOT: from research_assistant.tools.search_tools import ...
+
+    workflow: |
+      from research_assistant.graph.workflow import ResearchGraph
+      from research_assistant.graph.state import ResearchState
+
+# ============================================================================
+# MAKEFILE COMMAND TO CREATE STRUCTURE
+# ============================================================================
+create_structure_command:
+  description: "Updated Makefile target using canonical structure"
+
+  command: |
+    .PHONY: create-structure
+    create-structure: ## Create project directory structure
+    	@echo "Creating directory structure..."
+    	@mkdir -p src/research_assistant/{config,core,services,agents,tools,graph,ui/pages}
+    	@mkdir -p tests/{unit,integration,fixtures}
+    	@mkdir -p .streamlit
+    	@mkdir -p data/{documents,vectorstore}
+    	@touch src/research_assistant/__init__.py
+    	@touch src/research_assistant/config/__init__.py
+    	@touch src/research_assistant/core/__init__.py
+    	@touch src/research_assistant/services/__init__.py
+    	@touch src/research_assistant/agents/__init__.py
+    	@touch src/research_assistant/tools/__init__.py
+    	@touch src/research_assistant/graph/__init__.py
+    	@touch src/research_assistant/ui/__init__.py
+    	@touch tests/__init__.py
+    	@touch tests/unit/__init__.py
+    	@touch tests/integration/__init__.py
+    	@touch src/research_assistant/py.typed
+    	@echo "Directory structure created!"
+
+# ============================================================================
+# VERSION PINNING STRATEGY
+# ============================================================================
+version_strategy:
+  description: |
+    Use LOWER BOUNDS in pyproject.toml for flexibility.
+    The ranges in docs are for REFERENCE only.
+
+  pyproject_format: |
+    dependencies = [
+        "langchain>=0.3.0",           # Lower bound only
+        "langgraph>=0.2.0",
+        "chromadb>=0.4.0",
+        "sentence-transformers>=2.2.0",
+        # etc.
+    ]
+
+  documentation_reference: |
+    # In docs, show recommended ranges for context:
+    # langchain: ">=0.3.0,<0.4.0" (tested with 0.3.x)
+    # But pyproject.toml only uses lower bound
+
+# ============================================================================
+# IMPLEMENTATION PRIORITY ORDER
+# ============================================================================
+implementation_order:
+  phase_1_foundation:
+    - "src/research_assistant/__init__.py"
+    - "src/research_assistant/py.typed"
+    - "src/research_assistant/config/__init__.py"
+    - "src/research_assistant/config/settings.py"
+    - "src/research_assistant/config/prompts.py"
+    - "src/research_assistant/core/__init__.py"
+    - "src/research_assistant/core/exceptions.py"
+    - "src/research_assistant/core/schemas.py"
+
+  phase_2_services:
+    - "src/research_assistant/services/__init__.py"
+    - "src/research_assistant/services/embeddings.py"
+    - "src/research_assistant/services/vector_store.py"
+    - "src/research_assistant/services/document_service.py"
+    - "src/research_assistant/services/llm_service.py"
+
+  phase_3_tools:
+    - "src/research_assistant/tools/__init__.py"
+    - "src/research_assistant/tools/search.py"
+    - "src/research_assistant/tools/document.py"
+
+  phase_4_agents:
+    - "src/research_assistant/agents/__init__.py"
+    - "src/research_assistant/agents/base.py"
+    - "src/research_assistant/agents/researcher.py"
+    - "src/research_assistant/agents/writer.py"
+    - "src/research_assistant/agents/critic.py"
+    - "src/research_assistant/agents/supervisor.py"
+
+  phase_5_workflow:
+    - "src/research_assistant/graph/__init__.py"
+    - "src/research_assistant/graph/state.py"
+    - "src/research_assistant/graph/nodes.py"
+    - "src/research_assistant/graph/workflow.py"
+
+  phase_6_ui:
+    - ".streamlit/config.toml"
+    - "src/research_assistant/ui/__init__.py"
+    - "src/research_assistant/ui/components.py"
+    - "src/research_assistant/ui/app.py"
+    - "src/research_assistant/ui/pages/1_Chat.py"
+    - "src/research_assistant/ui/pages/2_Documents.py"
+    - "src/research_assistant/ui/pages/3_Settings.py"
+
+  phase_7_cli:
+    - "src/research_assistant/cli.py"
+
+  phase_8_tests:
+    - "tests/__init__.py"
+    - "tests/conftest.py"
+    - "tests/fixtures/sample_document.txt"
+    - "tests/fixtures/test_questions.json"
+    - "tests/unit/__init__.py"
+    - "tests/unit/test_*.py"
+    - "tests/integration/__init__.py"
+    - "tests/integration/test_*.py"
+
+  phase_9_config:
+    - ".pre-commit-config.yaml"
+
+# ============================================================================
+# END OF CANONICAL STRUCTURE
+# ============================================================================
