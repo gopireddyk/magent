@@ -31,7 +31,9 @@ if uploaded_files and st.button("Process Documents"):
     upload_dir.mkdir(parents=True, exist_ok=True)
 
     for file in uploaded_files:
-        file_path = upload_dir / file.name
+        # Sanitize filename to avoid path traversal
+        safe_name = Path(file.name).name
+        file_path = upload_dir / safe_name
         file_path.write_bytes(file.read())
 
     with st.spinner("Processing..."):

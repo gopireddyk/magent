@@ -148,8 +148,8 @@ all = [
 # ============================================================================
 [project.scripts]
 research-assistant = "research_assistant.cli:main"
-ra-ingest = "research_assistant.cli:ingest"
-ra-query = "research_assistant.cli:query"
+ra-ingest = "research_assistant.cli:cmd_ingest"
+ra-query = "research_assistant.cli:cmd_query"
 
 # ============================================================================
 # BUILD SYSTEM

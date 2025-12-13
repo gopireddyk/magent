@@ -20,22 +20,34 @@ _critic = CriticAgent()
 
 def supervisor_node(state: ResearchState) -> dict[str, Any]:
     """Supervisor decides next step."""
-    return _supervisor.process(state)
+    try:
+        return _supervisor.process(state)
+    except Exception as exc:
+        return {"error": f"supervisor failed: {exc}", "next": "FINISH"}
 
 
 def researcher_node(state: ResearchState) -> dict[str, Any]:
     """Researcher searches knowledge base."""
-    return _researcher.process(state)
+    try:
+        return _researcher.process(state)
+    except Exception as exc:
+        return {"error": f"researcher failed: {exc}", "next": "FINISH"}
 
 
 def writer_node(state: ResearchState) -> dict[str, Any]:
     """Writer generates response."""
-    return _writer.process(state)
+    try:
+        return _writer.process(state)
+    except Exception as exc:
+        return {"error": f"writer failed: {exc}", "next": "FINISH"}
 
 
 def critic_node(state: ResearchState) -> dict[str, Any]:
     """Critic reviews response."""
-    return _critic.process(state)
+    try:
+        return _critic.process(state)
+    except Exception as exc:
+        return {"error": f"critic failed: {exc}", "next": "FINISH"}
 
 
 def should_continue(state: ResearchState) -> str:
