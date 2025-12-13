@@ -7,6 +7,14 @@
 # IMPORTANT: This document resolves ALL conflicts between other docs.
 # When in doubt, THIS document is correct.
 # ============================================================================
+#
+# FOR AI IMPLEMENTATION:
+#   Use docs/PHASED-IMPLEMENTATION.yaml as your primary reference.
+#   It contains all 50 file contents inline in a single document.
+#   This file (CANONICAL-STRUCTURE.yaml) defines the structure.
+#   PHASED-IMPLEMENTATION.yaml contains the actual code to create.
+#
+# ============================================================================
 
 version: "1.0.0"
 last_updated: "2024-12"
@@ -165,7 +173,7 @@ canonical_structure:
     │       ├── variables.tf
     │       ├── environments/
     │       │   └── dev/
-    │       │       └── terraform.tfvars
+    │       │       └── main.tf           # Environment-specific config
     │       └── modules/
     │           └── kubernetes/
     │               ├── main.tf
@@ -209,7 +217,7 @@ file_manifest:
     Complete list of all files in the project with their status.
 
   source_code:
-    total_files: 28
+    total_files: 33  # Corrected: includes all __init__.py and UI pages
     status: "TO BE CREATED"
     files:
       - "src/research_assistant/__init__.py"
@@ -247,7 +255,7 @@ file_manifest:
       - "src/research_assistant/ui/pages/3_Settings.py"
 
   tests:
-    total_files: 13
+    total_files: 15  # Corrected: includes fixtures
     status: "TO BE CREATED"
     files:
       - "tests/__init__.py"
@@ -292,6 +300,7 @@ file_manifest:
       - "infrastructure/kubernetes/overlays/prod/kustomization.yaml"
       - "infrastructure/terraform/main.tf"
       - "infrastructure/terraform/variables.tf"
+      - "infrastructure/terraform/environments/dev/main.tf"
       - "infrastructure/terraform/modules/kubernetes/main.tf"
       - "infrastructure/terraform/modules/kubernetes/variables.tf"
       - "infrastructure/terraform/modules/kubernetes/outputs.tf"
@@ -325,14 +334,14 @@ file_counts:
     total: 50
 
   existing:
-    infrastructure: 20
+    infrastructure: 21  # Updated: includes environments/dev/main.tf
     scripts: 3
     root_files: 5
     data: 2
-    documentation: 15
-    total: 45
+    documentation: 15  # 14 YAML in docs/ + README.md (includes PHASED-IMPLEMENTATION.yaml)
+    total: 46
 
-  grand_total: 95
+  grand_total: 96  # 50 to create + 46 existing
 
 # ============================================================================
 # IMPORT MAPPING

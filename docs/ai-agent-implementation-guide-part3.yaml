@@ -514,17 +514,23 @@ file_implementations:
   # FILE 24: Models Package Init
   # --------------------------------------------------------------------------
   - file: "src/research_assistant/core/__init__.py"
-    description: "Models package exports"
+    description: "Core package exports (schemas and exceptions)"
     content: |
-      """Models package."""
+      """Core package - schemas and exceptions."""
 
-      from research_assistant.models.schemas import (
+      from research_assistant.core.schemas import (
           DocumentChunk,
           DocumentMetadata,
           RetrievedDocument,
           Citation,
           ResearchFindings,
           CritiqueResult,
+      )
+      from research_assistant.core.exceptions import (
+          ResearchAssistantError,
+          DocumentProcessingError,
+          VectorStoreError,
+          LLMError,
       )
 
       __all__ = [
@@ -534,46 +540,34 @@ file_implementations:
           "Citation",
           "ResearchFindings",
           "CritiqueResult",
+          "ResearchAssistantError",
+          "DocumentProcessingError",
+          "VectorStoreError",
+          "LLMError",
       ]
 
     verification:
-      command: "python -c \"from research_assistant.models import DocumentChunk; print('OK')\""
+      command: "python -c \"from research_assistant.core import DocumentChunk, ResearchAssistantError; print('OK')\""
       expected_output: "OK"
 
   # --------------------------------------------------------------------------
-  # FILE 25: Vectorstore Package Init
+  # FILE 25: Services Package Init (includes embeddings and vector_store)
   # --------------------------------------------------------------------------
   - file: "src/research_assistant/services/__init__.py"
-    description: "Vectorstore package exports"
+    description: "Services package exports (embeddings, vector_store, document, llm)"
     content: |
-      """Vectorstore package."""
+      """Services package - all service classes."""
 
-      from research_assistant.vectorstore.store import VectorStore, get_vector_store
-      from research_assistant.vectorstore.embeddings import EmbeddingService, get_embedding_service
-
-      __all__ = [
-          "VectorStore",
-          "get_vector_store",
-          "EmbeddingService",
-          "get_embedding_service",
-      ]
-
-    verification:
-      command: "python -c \"from research_assistant.vectorstore import VectorStore; print('OK')\""
-      expected_output: "OK"
-
-  # --------------------------------------------------------------------------
-  # FILE 26: Services Package Init
-  # --------------------------------------------------------------------------
-  - file: "src/research_assistant/services/__init__.py"
-    description: "Services package exports"
-    content: |
-      """Services package."""
-
+      from research_assistant.services.embeddings import EmbeddingService, get_embedding_service
+      from research_assistant.services.vector_store import VectorStore, get_vector_store
       from research_assistant.services.document_service import DocumentService, get_document_service
       from research_assistant.services.llm_service import LLMService, get_llm_service
 
       __all__ = [
+          "EmbeddingService",
+          "get_embedding_service",
+          "VectorStore",
+          "get_vector_store",
           "DocumentService",
           "get_document_service",
           "LLMService",
@@ -581,7 +575,7 @@ file_implementations:
       ]
 
     verification:
-      command: "python -c \"from research_assistant.services import DocumentService; print('OK')\""
+      command: "python -c \"from research_assistant.services import VectorStore, EmbeddingService, DocumentService; print('OK')\""
       expected_output: "OK"
 
   # --------------------------------------------------------------------------
@@ -870,7 +864,7 @@ verification:
         from research_assistant.config import settings
         from research_assistant.agents import SupervisorAgent, ResearcherAgent, WriterAgent, CriticAgent
         from research_assistant.graph import get_research_workflow
-        from research_assistant.vectorstore import get_vector_store
+        from research_assistant.services import get_vector_store
         print('All imports successful!')
         "
       expected: "All imports successful!"
@@ -887,7 +881,7 @@ verification:
     - description: "Vector store initializes"
       command: |
         python -c "
-        from research_assistant.vectorstore import get_vector_store
+        from research_assistant.services import get_vector_store
         vs = get_vector_store()
         print(vs.get_stats())
         "
@@ -933,9 +927,9 @@ execution_guide:
   step_1_setup:
     description: "Initial project setup"
     commands:
-      - "mkdir -p src/research_assistant/{config,models,vectorstore,services,tools,agents,graph,ui}"
+      - "mkdir -p src/research_assistant/{config,core,services,tools,agents,graph,ui}"
       - "mkdir -p tests/{unit,integration,fixtures}"
-      - "mkdir -p data/{documents,vectorstore}"
+      - "mkdir -p data/{documents,chroma_db}"
       - "touch src/research_assistant/__init__.py"
       - "pip install -e ."
 
@@ -968,13 +962,12 @@ execution_guide:
       python -c "
       # Test all imports
       from research_assistant.config import settings
-      from research_assistant.models import DocumentChunk
-      from research_assistant.vectorstore import get_vector_store
-      from research_assistant.services import get_document_service, get_llm_service
+      from research_assistant.core import DocumentChunk
+      from research_assistant.services import get_vector_store, get_document_service, get_llm_service
       from research_assistant.tools import search_documents
       from research_assistant.agents import SupervisorAgent, ResearcherAgent, WriterAgent, CriticAgent
       from research_assistant.graph import get_research_workflow
-      print('✅ All components verified!')
+      print('All components verified!')
       "
 
   step_4_run:
@@ -1008,7 +1001,7 @@ troubleshooting:
   - issue: "ChromaDB permission error"
     solution: |
       Check directory permissions:
-      chmod -R 755 data/vectorstore
+      chmod -R 755 data/chroma_db
 
   - issue: "Out of memory error"
     solution: |

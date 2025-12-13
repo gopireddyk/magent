@@ -15,13 +15,13 @@
 #       which is the authoritative source for file counts.
 # ============================================================================
 summary:
-  total_files_needed: 95     # All files in project
-  files_exist: 45            # Documentation, infrastructure, root files
+  total_files_needed: 96     # All files in project (50 to create + 46 existing)
+  files_exist: 46            # Documentation, infrastructure, scripts, root files
   files_to_create: 50        # Source code, tests, 2 config files
 
   status_by_category:
-    documentation: "100% Complete (15 files)"
-    infrastructure: "100% Complete (20 files)"
+    documentation: "100% Complete (15 files)"  # 14 YAML + README.md
+    infrastructure: "100% Complete (21 files)"
     scripts: "100% Complete (3 files)"
     root_files: "100% Complete (5 files)"
     source_code: "0% Complete (33 files TO CREATE)"
@@ -164,7 +164,7 @@ source_code:
     - file: "src/research_assistant/tools/search.py"
       purpose: "Vector search tool for agents"
       lines_estimate: 60
-      reference: "docs/ai-agent-implementation-guide.yaml#search_tools"
+      reference: "docs/ai-agent-implementation-guide.yaml#search"
 
     - file: "src/research_assistant/tools/document.py"
       purpose: "Document processing tools"
@@ -619,33 +619,48 @@ file_count_summary:
 
   # Files ALREADY EXIST
   existing:
-    infrastructure: 20
+    infrastructure: 21  # Includes environments/dev/main.tf
     scripts: 3
     root_files: 5
     data_gitkeeps: 2
-    documentation: 15
-    subtotal: 45
+    documentation: 15  # 14 YAML + README.md (includes PHASED-IMPLEMENTATION.yaml)
+    subtotal: 46
 
   # Grand totals
   total:
-    all_project_files: 95
+    all_project_files: 96
     files_to_create: 50
-    files_exist: 45
+    files_exist: 46
     lines_to_write: 3605
 
 # ============================================================================
 # QUICK START FOR AI IMPLEMENTATION
 # ============================================================================
+# RECOMMENDED: Use docs/PHASED-IMPLEMENTATION.yaml as the single reference
+#              It contains all code inline with no external dependencies.
+# ============================================================================
 ai_implementation_guide:
   description: |
     Step-by-step guide for an AI agent to implement the project.
 
-  step_1:
-    action: "Read documentation"
+  primary_document:
+    path: "docs/PHASED-IMPLEMENTATION.yaml"
+    description: |
+      SINGLE CONSOLIDATED DOCUMENT with all 50 file contents inline.
+      Optimized for AI context limits. Read ONLY this document.
+      Contains: canonical paths, all code, verification commands.
+
+  alternative_references:
+    note: "Use these ONLY if you need additional context"
     files:
-      - "docs/project-structure.yaml"
-      - "docs/naming-conventions.yaml"
-      - "docs/external-dependencies.yaml"
+      - "docs/ai-agent-implementation-guide.yaml"
+      - "docs/ai-agent-implementation-guide-part2.yaml"
+      - "docs/ai-agent-implementation-guide-part3.yaml"
+
+  step_1:
+    action: "Read the consolidated phased implementation guide"
+    file: "docs/PHASED-IMPLEMENTATION.yaml"
+    note: "This contains everything - no need to read other docs"
 
   step_2:
     action: "Create directory structure"
@@ -655,23 +670,25 @@ ai_implementation_guide:
       mkdir -p .streamlit
 
   step_3:
-    action: "Implement Phase 1-5 (Core functionality)"
-    reference: "docs/ai-agent-implementation-guide.yaml"
-    reference2: "docs/ai-agent-implementation-guide-part2.yaml"
+    action: "Implement Phases 1-9 in order"
+    phases:
+      - "Phase 1: Foundation (8 files) - config, core"
+      - "Phase 2: Services (5 files) - embeddings, vector_store, etc."
+      - "Phase 3: Tools (3 files) - search, document"
+      - "Phase 4: Agents (6 files) - base, supervisor, researcher, writer, critic"
+      - "Phase 5: Workflow (4 files) - LangGraph state and workflow"
+      - "Phase 6: UI (7 files) - Streamlit app and pages"
+      - "Phase 7: CLI (1 file) - command-line interface"
+      - "Phase 8: Tests (15 files) - unit and integration tests"
+      - "Phase 9: Polish (1 file) - pre-commit config"
+    reference: "docs/PHASED-IMPLEMENTATION.yaml"
 
   step_4:
-    action: "Implement Phase 6-7 (UI and CLI)"
-    reference: "docs/ai-agent-implementation-guide-part3.yaml"
-
-  step_5:
-    action: "Implement Phase 8 (Tests)"
-    reference: "docs/ai-agent-implementation-guide-part3.yaml#tests"
-
-  step_6:
     action: "Verify implementation"
     commands:
-      - "make install-dev"
-      - "make verify-all"
+      - "pip install -e '.[dev]'"
+      - "pytest tests/ -v"
+      - "streamlit run src/research_assistant/ui/app.py"
       - "make lint"
       - "make test"
       - "make run"

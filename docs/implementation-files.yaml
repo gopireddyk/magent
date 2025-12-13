@@ -1,11 +1,22 @@
 # ============================================================================
-# IMPLEMENTATION FILES - COMPLETE CODE TEMPLATES
+# IMPLEMENTATION FILES - SUPPLEMENTARY TEMPLATES
 # ============================================================================
 # Project: Student Research Assistant
-# Purpose: Exact file contents for ALL missing files
+# Purpose: Supplementary file templates (configs, fixtures, scripts)
 # ============================================================================
-# This document contains the COMPLETE code for every missing file.
-# An AI agent can copy these directly to create the full project.
+#
+# IMPORTANT: This is a SUPPLEMENTARY document.
+# PRIMARY REFERENCE: docs/PHASED-IMPLEMENTATION.yaml
+#   - Contains ALL 50 files with inline code
+#   - Single document optimized for AI context
+#   - Use that document for implementation
+#
+# This document provides:
+#   - Configuration file templates
+#   - Test fixtures
+#   - K8s overlay examples (already exist in repo)
+#   - Directory creation scripts
+#
 # ============================================================================
 
 # ============================================================================
@@ -717,19 +728,19 @@ implementation_checklist:
     - "[ ] Create src/research_assistant/config/prompts.py"
     - "[ ] Create src/research_assistant/core/exceptions.py"
     - "[ ] Create src/research_assistant/core/schemas.py"
-    - "[ ] Verify: python -c 'from research_assistant.config import Settings'"
+    - "[ ] Verify: python -c 'from research_assistant.config import get_settings; print(\"OK\")'"
 
   phase_2_services:
     - "[ ] Create src/research_assistant/services/embeddings.py"
     - "[ ] Create src/research_assistant/services/vector_store.py"
     - "[ ] Create src/research_assistant/services/document_service.py"
     - "[ ] Create src/research_assistant/services/llm_service.py"
-    - "[ ] Verify: python -c 'from research_assistant.services import EmbeddingService'"
+    - "[ ] Verify: python -c 'from research_assistant.services import EmbeddingService, VectorStore; print(\"OK\")'"
 
   phase_3_tools:
     - "[ ] Create src/research_assistant/tools/search.py"
     - "[ ] Create src/research_assistant/tools/document.py"
-    - "[ ] Verify: python -c 'from research_assistant.tools import vector_search'"
+    - "[ ] Verify: python -c 'from research_assistant.tools import search_documents; print(\"OK\")'"
 
   phase_4_agents:
     - "[ ] Create src/research_assistant/agents/base.py"
@@ -737,13 +748,13 @@ implementation_checklist:
     - "[ ] Create src/research_assistant/agents/writer.py"
     - "[ ] Create src/research_assistant/agents/critic.py"
     - "[ ] Create src/research_assistant/agents/supervisor.py"
-    - "[ ] Verify: python -c 'from research_assistant.agents import SupervisorAgent'"
+    - "[ ] Verify: python -c 'from research_assistant.agents import SupervisorAgent; print(\"OK\")'"
 
   phase_5_workflow:
     - "[ ] Create src/research_assistant/graph/state.py"
     - "[ ] Create src/research_assistant/graph/nodes.py"
     - "[ ] Create src/research_assistant/graph/workflow.py"
-    - "[ ] Verify: python -c 'from research_assistant.graph import ResearchGraph'"
+    - "[ ] Verify: python -c 'from research_assistant.graph import get_research_workflow; print(\"OK\")'"
 
   phase_6_ui:
     - "[ ] Create .streamlit/config.toml"
