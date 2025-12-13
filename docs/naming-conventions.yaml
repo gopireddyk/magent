@@ -1,0 +1,812 @@
+# ============================================================================
+# NAMING CONVENTIONS & REFERENCE DOCUMENT
+# ============================================================================
+# Project: Student Research Assistant
+# Purpose: Single source of truth for ALL names used throughout the project
+# ============================================================================
+# This document ensures consistent naming across:
+# - Source code (Python modules, classes, functions, variables)
+# - Infrastructure (Kubernetes, containers, VMs)
+# - Configuration (environment variables, settings)
+# - Documentation and references
+# ============================================================================
+
+# ============================================================================
+# PROJECT IDENTITY
+# ============================================================================
+project:
+  # Official project name
+  name: "Student Research Assistant"
+  short_name: "Research Assistant"
+
+  # Machine-readable identifiers
+  slug: "student-research-assistant"          # For URLs, package names
+  slug_short: "research-assistant"            # Shorter version
+  abbreviation: "sra"                         # 3-letter abbreviation
+  prefix: "research"                          # For environment variables
+
+  # Python package name
+  package_name: "research_assistant"          # snake_case for Python
+  package_import: "research_assistant"        # Import statement
+
+  # Container/Image names
+  container_name: "research-assistant"        # kebab-case for containers
+  image_name: "research-assistant"            # Same as container
+
+  # Repository
+  repo_name: "student-research-assistant"     # GitHub repository name
+
+# ============================================================================
+# AGENT NAMES
+# ============================================================================
+agents:
+  description: |
+    The application uses 4 specialized AI agents working together.
+    Each agent has consistent naming across code, prompts, and UI.
+
+  supervisor:
+    name: "Supervisor"
+    class_name: "SupervisorAgent"
+    module: "supervisor"
+    file: "supervisor.py"
+    node_name: "supervisor_node"
+    state_key: "supervisor_decision"
+    description: "Orchestrates the workflow and routes to other agents"
+    emoji: "👔"
+    color: "#4A90D9"  # Blue
+    responsibilities:
+      - "Receive user queries"
+      - "Decide which agent to invoke"
+      - "Monitor task completion"
+      - "Return final answers"
+
+  researcher:
+    name: "Researcher"
+    class_name: "ResearcherAgent"
+    module: "researcher"
+    file: "researcher.py"
+    node_name: "researcher_node"
+    state_key: "research_notes"
+    description: "Searches documents and extracts relevant information"
+    emoji: "🔍"
+    color: "#7CB342"  # Green
+    responsibilities:
+      - "Query vector database"
+      - "Extract key facts"
+      - "Rank sources by relevance"
+      - "Identify information gaps"
+
+  writer:
+    name: "Writer"
+    class_name: "WriterAgent"
+    module: "writer"
+    file: "writer.py"
+    node_name: "writer_node"
+    state_key: "draft_answer"
+    description: "Synthesizes information into coherent responses"
+    emoji: "✍️"
+    color: "#FF9800"  # Orange
+    responsibilities:
+      - "Synthesize research findings"
+      - "Create structured responses"
+      - "Add citations"
+      - "Handle revisions"
+
+  critic:
+    name: "Critic"
+    class_name: "CriticAgent"
+    module: "critic"
+    file: "critic.py"
+    node_name: "critic_node"
+    state_key: "critique"
+    description: "Reviews responses for quality and accuracy"
+    emoji: "🔎"
+    color: "#E91E63"  # Pink
+    responsibilities:
+      - "Verify factual accuracy"
+      - "Check citation correctness"
+      - "Identify gaps"
+      - "Approve or request revision"
+
+  # Agent routing values (used in supervisor decisions)
+  routing_values:
+    researcher: "RESEARCHER"
+    writer: "WRITER"
+    critic: "CRITIC"
+    finish: "FINISH"
+    end: "END"
+
+# ============================================================================
+# PYTHON CODE NAMING
+# ============================================================================
+python:
+  # Package structure
+  package_structure:
+    root: "src/research_assistant"
+    agents: "src/research_assistant/agents"
+    tools: "src/research_assistant/tools"
+    graph: "src/research_assistant/graph"
+    services: "src/research_assistant/services"
+    ui: "src/research_assistant/ui"
+    config: "src/research_assistant/config"
+    core: "src/research_assistant/core"
+
+  # Module names (files without .py)
+  modules:
+    # Config modules
+    settings: "settings"
+    prompts: "prompts"
+
+    # Core modules
+    exceptions: "exceptions"
+    schemas: "schemas"
+
+    # Service modules
+    embeddings: "embeddings"
+    vector_store: "vector_store"
+    document_service: "document_service"
+    llm_service: "llm_service"
+
+    # Agent modules
+    base_agent: "base"
+    supervisor_agent: "supervisor"
+    researcher_agent: "researcher"
+    writer_agent: "writer"
+    critic_agent: "critic"
+
+    # Graph modules
+    state: "state"
+    nodes: "nodes"
+    workflow: "workflow"
+
+    # Tool modules
+    search_tools: "search"
+    document_tools: "document"
+
+    # UI modules
+    app: "app"
+    components: "components"
+
+    # CLI
+    cli: "cli"
+
+  # Class names (PascalCase)
+  classes:
+    # Settings
+    settings: "Settings"
+    app_config: "AppConfig"
+
+    # Exceptions
+    base_exception: "ResearchAssistantError"
+    document_error: "DocumentProcessingError"
+    embedding_error: "EmbeddingError"
+    llm_error: "LLMError"
+    agent_error: "AgentError"
+    vector_store_error: "VectorStoreError"
+
+    # Schemas / Models
+    document: "Document"
+    document_chunk: "DocumentChunk"
+    search_result: "SearchResult"
+    agent_response: "AgentResponse"
+    chat_message: "ChatMessage"
+    research_state: "ResearchState"
+
+    # Services
+    embedding_service: "EmbeddingService"
+    vector_store_service: "VectorStoreService"
+    document_service: "DocumentService"
+    llm_service: "LLMService"
+
+    # Agents
+    base_agent: "BaseAgent"
+    supervisor_agent: "SupervisorAgent"
+    researcher_agent: "ResearcherAgent"
+    writer_agent: "WriterAgent"
+    critic_agent: "CriticAgent"
+
+    # Workflow
+    research_graph: "ResearchGraph"
+    workflow_builder: "WorkflowBuilder"
+
+  # Function names (snake_case)
+  functions:
+    # Service functions
+    create_embeddings: "create_embeddings"
+    search_documents: "search_documents"
+    ingest_document: "ingest_document"
+    generate_response: "generate_response"
+
+    # Agent functions
+    process_query: "process_query"
+    run_agent: "run_agent"
+    get_next_agent: "get_next_agent"
+
+    # Graph node functions
+    supervisor_node: "supervisor_node"
+    researcher_node: "researcher_node"
+    writer_node: "writer_node"
+    critic_node: "critic_node"
+    route_next: "route_next"
+    should_continue: "should_continue"
+
+    # Tool functions
+    vector_search: "vector_search"
+    extract_facts: "extract_facts"
+    format_citations: "format_citations"
+
+    # UI functions
+    render_chat: "render_chat"
+    render_sidebar: "render_sidebar"
+    handle_upload: "handle_upload"
+
+  # Variable naming patterns
+  variables:
+    # Constants (UPPER_SNAKE_CASE)
+    max_iterations: "MAX_ITERATIONS"
+    max_revisions: "MAX_REVISIONS"
+    default_model: "DEFAULT_MODEL"
+    default_temperature: "DEFAULT_TEMPERATURE"
+
+    # Instance variables (snake_case)
+    llm_client: "llm_client"
+    vector_store: "vector_store"
+    embedding_model: "embedding_model"
+    chat_history: "chat_history"
+    current_state: "current_state"
+
+# ============================================================================
+# LANGGRAPH STATE KEYS
+# ============================================================================
+langgraph:
+  # State schema field names
+  state_fields:
+    question: "question"                    # User's original question
+    documents: "documents"                  # Retrieved source documents
+    research_notes: "research_notes"        # Researcher's findings
+    draft_answer: "draft_answer"            # Writer's draft response
+    critique: "critique"                    # Critic's feedback
+    revision_count: "revision_count"        # Number of revisions
+    final_answer: "final_answer"            # Approved final response
+    sources: "sources"                      # All citations used
+    next_agent: "next_agent"                # Next agent to execute
+    status: "status"                        # Current workflow status
+    messages: "messages"                    # Conversation history
+    error: "error"                          # Error message if any
+
+  # Node names in the graph
+  nodes:
+    start: "START"
+    end: "END"
+    supervisor: "supervisor"
+    researcher: "researcher"
+    writer: "writer"
+    critic: "critic"
+
+  # Edge labels (for visualization)
+  edges:
+    to_researcher: "needs_research"
+    to_writer: "ready_to_write"
+    to_critic: "review_draft"
+    to_revision: "needs_revision"
+    to_end: "approved"
+
+  # Status values
+  status_values:
+    pending: "pending"
+    researching: "researching"
+    writing: "writing"
+    reviewing: "reviewing"
+    revising: "revising"
+    complete: "complete"
+    error: "error"
+
+# ============================================================================
+# ENVIRONMENT VARIABLES
+# ============================================================================
+environment_variables:
+  # Prefix for all project environment variables
+  prefix: "RESEARCH"
+
+  # LLM Configuration
+  llm:
+    base_url: "RESEARCH_OLLAMA_BASE_URL"
+    model: "RESEARCH_OLLAMA_MODEL"
+    temperature: "RESEARCH_LLM_TEMPERATURE"
+    max_tokens: "RESEARCH_LLM_MAX_TOKENS"
+
+  # Embedding Configuration
+  embeddings:
+    model: "RESEARCH_EMBEDDING_MODEL"
+    device: "RESEARCH_EMBEDDING_DEVICE"
+
+  # Vector Database
+  vector_db:
+    persist_dir: "RESEARCH_CHROMA_PERSIST_DIR"
+    collection: "RESEARCH_CHROMA_COLLECTION"
+    host: "RESEARCH_CHROMA_HOST"
+    port: "RESEARCH_CHROMA_PORT"
+
+  # Document Processing
+  documents:
+    chunk_size: "RESEARCH_CHUNK_SIZE"
+    chunk_overlap: "RESEARCH_CHUNK_OVERLAP"
+    upload_dir: "RESEARCH_UPLOAD_DIR"
+    max_file_size: "RESEARCH_MAX_FILE_SIZE_MB"
+
+  # Agent Configuration
+  agents:
+    max_iterations: "RESEARCH_MAX_ITERATIONS"
+    max_revisions: "RESEARCH_MAX_REVISIONS"
+    retrieval_top_k: "RESEARCH_RETRIEVAL_TOP_K"
+    retrieval_threshold: "RESEARCH_RETRIEVAL_THRESHOLD"
+
+  # Application
+  app:
+    log_level: "RESEARCH_LOG_LEVEL"
+    log_json: "RESEARCH_LOG_JSON"
+    environment: "RESEARCH_ENVIRONMENT"
+    debug: "RESEARCH_DEBUG"
+
+  # Streamlit
+  streamlit:
+    port: "STREAMLIT_SERVER_PORT"
+    address: "STREAMLIT_SERVER_ADDRESS"
+
+# ============================================================================
+# INFRASTRUCTURE NAMING
+# ============================================================================
+infrastructure:
+
+  # Kubernetes
+  kubernetes:
+    namespace: "research-assistant"
+
+    # Deployment names
+    deployments:
+      app: "research-assistant-app"
+      ollama: "research-assistant-ollama"
+
+    # StatefulSet names
+    statefulsets:
+      chromadb: "research-assistant-chromadb"
+
+    # Service names
+    services:
+      app: "research-assistant-svc"
+      ollama: "ollama-svc"
+      chromadb: "chromadb-svc"
+
+    # ConfigMap names
+    configmaps:
+      app_config: "research-assistant-config"
+      prompts: "research-assistant-prompts"
+
+    # Secret names
+    secrets:
+      app_secrets: "research-assistant-secrets"
+
+    # PVC names
+    pvcs:
+      documents: "research-documents-pvc"
+      vectorstore: "research-vectorstore-pvc"
+      ollama_models: "ollama-models-pvc"
+      chromadb_data: "chromadb-data-pvc"
+
+    # Ingress
+    ingress:
+      name: "research-assistant-ingress"
+      host: "research.local"
+
+    # Labels (applied to all resources)
+    labels:
+      app: "research-assistant"
+      component: "app|ollama|chromadb"
+      part_of: "research-assistant"
+      managed_by: "kustomize"
+
+    # Annotations
+    annotations:
+      description: "app.kubernetes.io/description"
+      version: "app.kubernetes.io/version"
+
+  # Podman / Containers
+  containers:
+    # Image names
+    images:
+      app: "research-assistant"
+      app_full: "localhost/research-assistant:latest"
+      ollama: "docker.io/ollama/ollama:latest"
+      chromadb: "docker.io/chromadb/chroma:latest"
+      curl: "docker.io/curlimages/curl:latest"
+
+    # Container names (for podman-compose)
+    names:
+      app: "research-assistant-app"
+      ollama: "research-assistant-ollama"
+      chromadb: "research-assistant-chromadb"
+      ollama_init: "research-assistant-ollama-init"
+
+    # Network name
+    network: "research-network"
+
+    # Volume names
+    volumes:
+      documents: "documents_data"
+      vectorstore: "chroma_data"
+      ollama: "ollama_data"
+      config: "app_config"
+
+  # Multipass VM
+  multipass:
+    vm_name: "k8s-research"
+    vm_cpus: 4
+    vm_memory: "8G"
+    vm_disk: "40G"
+    ubuntu_version: "22.04"
+
+    # Kubeconfig location
+    kubeconfig_file: "~/.kube/k8s-research-config"
+
+  # Registry
+  registry:
+    local: "localhost:5000"
+    prefix: "research-assistant"
+
+# ============================================================================
+# PORTS
+# ============================================================================
+ports:
+  application:
+    streamlit: 8501
+    description: "Streamlit web UI"
+
+  ollama:
+    api: 11434
+    description: "Ollama LLM API"
+
+  chromadb:
+    api: 8000
+    description: "ChromaDB vector database API"
+
+  metrics:
+    prometheus: 9090
+    description: "Prometheus metrics (optional)"
+
+# ============================================================================
+# FILE & DIRECTORY NAMES
+# ============================================================================
+files_and_directories:
+  # Source code directories
+  source:
+    root: "src"
+    package: "research_assistant"
+    agents: "agents"
+    tools: "tools"
+    graph: "graph"
+    services: "services"
+    ui: "ui"
+    config: "config"
+    core: "core"
+
+  # Data directories
+  data:
+    root: "data"
+    documents: "documents"
+    vectorstore: "vectorstore"
+
+  # Test directories
+  tests:
+    root: "tests"
+    unit: "unit"
+    integration: "integration"
+    fixtures: "fixtures"
+    conftest: "conftest.py"
+
+  # Documentation
+  docs:
+    root: "docs"
+    design: "design"
+    development: "development"
+    infrastructure: "infrastructure"
+    api: "api"
+
+  # Infrastructure
+  infrastructure:
+    root: "infrastructure"
+    kubernetes: "kubernetes"
+    k8s_base: "kubernetes/base"
+    k8s_overlays: "kubernetes/overlays"
+    podman: "podman"
+    multipass: "multipass"
+    terraform: "terraform"
+    docker: "docker"
+
+  # Key files
+  files:
+    # Root files
+    readme: "README.md"
+    pyproject: "pyproject.toml"
+    makefile: "Makefile"
+    env_example: ".env.example"
+    gitignore: ".gitignore"
+
+    # Python files
+    init: "__init__.py"
+    main_app: "app.py"
+    cli: "cli.py"
+    settings: "settings.py"
+
+    # Infrastructure files
+    containerfile: "Containerfile"
+    dockerfile: "Dockerfile"
+    compose: "podman-compose.yaml"
+    cloud_init: "cloud-init.yaml"
+    kustomization: "kustomization.yaml"
+
+# ============================================================================
+# CHROMADB NAMING
+# ============================================================================
+chromadb:
+  # Collection names
+  collections:
+    default: "research_documents"
+    test: "test_documents"
+
+  # Metadata field names
+  metadata_fields:
+    source: "source"
+    filename: "filename"
+    page: "page"
+    chunk_index: "chunk_index"
+    document_id: "document_id"
+    created_at: "created_at"
+    file_type: "file_type"
+    title: "title"
+    author: "author"
+
+# ============================================================================
+# AI MODEL NAMES
+# ============================================================================
+ai_models:
+  # Ollama LLM models
+  llm:
+    primary: "llama3.2"
+    primary_light: "llama3.2:1b"
+    alternative_1: "mistral"
+    alternative_2: "codellama"
+    alternative_3: "qwen2.5:7b"
+
+  # Embedding models
+  embeddings:
+    primary: "all-MiniLM-L6-v2"
+    alternative_1: "all-mpnet-base-v2"
+    ollama_embed: "nomic-embed-text"
+    ollama_embed_large: "mxbai-embed-large"
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+logging:
+  # Logger names
+  loggers:
+    root: "research_assistant"
+    agents: "research_assistant.agents"
+    services: "research_assistant.services"
+    graph: "research_assistant.graph"
+    ui: "research_assistant.ui"
+
+  # Log levels
+  levels:
+    debug: "DEBUG"
+    info: "INFO"
+    warning: "WARNING"
+    error: "ERROR"
+    critical: "CRITICAL"
+
+  # Log format fields
+  fields:
+    timestamp: "timestamp"
+    level: "level"
+    logger: "logger"
+    message: "message"
+    agent: "agent"
+    query: "query"
+    duration: "duration_ms"
+
+# ============================================================================
+# UI LABELS & TEXT
+# ============================================================================
+ui:
+  # Page titles
+  pages:
+    main: "Research Assistant"
+    chat: "Chat"
+    documents: "Documents"
+    settings: "Settings"
+    about: "About"
+
+  # Sidebar labels
+  sidebar:
+    upload: "Upload Documents"
+    collections: "Collections"
+    model_settings: "Model Settings"
+    agent_settings: "Agent Settings"
+
+  # Button labels
+  buttons:
+    send: "Send"
+    upload: "Upload"
+    clear: "Clear"
+    delete: "Delete"
+    refresh: "Refresh"
+    export: "Export"
+    settings: "Settings"
+
+  # Status messages
+  status:
+    processing: "Processing..."
+    researching: "Researching..."
+    writing: "Writing response..."
+    reviewing: "Reviewing..."
+    complete: "Complete"
+    error: "Error occurred"
+
+  # Agent display names (for UI)
+  agent_display:
+    supervisor: "🎯 Supervisor"
+    researcher: "🔍 Researcher"
+    writer: "✍️ Writer"
+    critic: "🔎 Critic"
+
+# ============================================================================
+# API ENDPOINTS (if REST API added)
+# ============================================================================
+api:
+  # Base paths
+  base: "/api"
+  version: "/api/v1"
+
+  # Endpoints
+  endpoints:
+    health: "/health"
+    query: "/query"
+    documents: "/documents"
+    documents_upload: "/documents/upload"
+    documents_delete: "/documents/{id}"
+    collections: "/collections"
+    settings: "/settings"
+
+# ============================================================================
+# TESTING
+# ============================================================================
+testing:
+  # Test file naming pattern
+  file_pattern: "test_*.py"
+
+  # Test class naming pattern
+  class_pattern: "Test*"
+
+  # Test function naming pattern
+  function_pattern: "test_*"
+
+  # Fixture names
+  fixtures:
+    sample_document: "sample_document"
+    sample_chunks: "sample_chunks"
+    mock_llm: "mock_llm"
+    mock_embeddings: "mock_embeddings"
+    mock_vector_store: "mock_vector_store"
+    test_settings: "test_settings"
+    research_state: "research_state"
+
+  # Marker names
+  markers:
+    unit: "unit"
+    integration: "integration"
+    slow: "slow"
+    requires_ollama: "requires_ollama"
+    requires_gpu: "requires_gpu"
+
+# ============================================================================
+# GIT
+# ============================================================================
+git:
+  # Branch names
+  branches:
+    main: "main"
+    develop: "develop"
+    feature_prefix: "feature/"
+    bugfix_prefix: "bugfix/"
+    release_prefix: "release/"
+    hotfix_prefix: "hotfix/"
+
+  # Commit message prefixes
+  commit_prefixes:
+    feature: "feat"
+    fix: "fix"
+    docs: "docs"
+    style: "style"
+    refactor: "refactor"
+    test: "test"
+    chore: "chore"
+    ci: "ci"
+
+  # Tag format
+  tag_format: "v{major}.{minor}.{patch}"
+
+# ============================================================================
+# QUICK REFERENCE - COMMONLY USED NAMES
+# ============================================================================
+quick_reference:
+  # When writing Python code, use these names:
+  python:
+    import_package: "from research_assistant import ..."
+    settings_class: "Settings"
+    base_agent: "BaseAgent"
+    state_class: "ResearchState"
+    main_workflow: "ResearchGraph"
+
+  # When writing Kubernetes manifests, use these names:
+  kubernetes:
+    namespace: "research-assistant"
+    app_label: "app: research-assistant"
+    app_deployment: "research-assistant-app"
+    app_service: "research-assistant-svc"
+
+  # When writing Podman/Docker commands:
+  containers:
+    image: "research-assistant:latest"
+    network: "research-network"
+    app_container: "research-assistant-app"
+
+  # When writing environment variables:
+  env_vars:
+    prefix: "RESEARCH_"
+    llm_model: "RESEARCH_OLLAMA_MODEL"
+    embed_model: "RESEARCH_EMBEDDING_MODEL"
+
+  # When referencing agents in code/prompts:
+  agents:
+    supervisor: "supervisor"
+    researcher: "researcher"
+    writer: "writer"
+    critic: "critic"
+    routing: ["RESEARCHER", "WRITER", "CRITIC", "FINISH"]
+
+# ============================================================================
+# NAMING RULES SUMMARY
+# ============================================================================
+naming_rules:
+  python:
+    packages: "snake_case (research_assistant)"
+    modules: "snake_case (vector_store.py)"
+    classes: "PascalCase (VectorStoreService)"
+    functions: "snake_case (search_documents)"
+    constants: "UPPER_SNAKE_CASE (MAX_ITERATIONS)"
+    variables: "snake_case (chat_history)"
+    private: "_prefix (_internal_method)"
+
+  kubernetes:
+    resources: "kebab-case (research-assistant-app)"
+    namespaces: "kebab-case (research-assistant)"
+    labels: "kebab-case keys (app.kubernetes.io/name)"
+    configmaps: "kebab-case (research-assistant-config)"
+
+  containers:
+    images: "kebab-case (research-assistant)"
+    containers: "kebab-case (research-assistant-app)"
+    volumes: "snake_case (documents_data)"
+    networks: "kebab-case (research-network)"
+
+  environment:
+    variables: "UPPER_SNAKE_CASE with prefix (RESEARCH_OLLAMA_MODEL)"
+
+  files:
+    python: "snake_case.py (vector_store.py)"
+    yaml: "kebab-case.yaml (cloud-init.yaml)"
+    markdown: "UPPER_CASE.md or kebab-case.md (README.md)"
+
+# ============================================================================
+# END OF NAMING CONVENTIONS DOCUMENT
+# ============================================================================
