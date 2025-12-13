@@ -3,6 +3,23 @@
 # ============================================================================
 # Contains: Agent Implementations (Base, Researcher, Writer, Critic, Supervisor)
 # ============================================================================
+#
+# ⚠️  IMPORTANT: STRUCTURE CONFLICT NOTICE ⚠️
+# ============================================================================
+# This document uses an OLDER module structure (models/, vectorstore/).
+# The CANONICAL structure is defined in docs/CANONICAL-STRUCTURE.yaml.
+#
+# When implementing, use these mappings:
+#   OLD (this doc)              →  NEW (canonical)
+#   ─────────────────────────────────────────────
+#   models/schemas.py           →  core/schemas.py
+#   vectorstore/embeddings.py   →  services/embeddings.py
+#   vectorstore/store.py        →  services/vector_store.py
+#   tools/search_tools.py       →  tools/search.py
+#
+# The code examples in this document are still valid - just use the canonical
+# file paths from CANONICAL-STRUCTURE.yaml when creating files.
+# ============================================================================
 
 metadata:
   document_type: "AI Agent Implementation Guide - Part 2"
