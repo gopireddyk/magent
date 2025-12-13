@@ -4,21 +4,14 @@
 # Contains: Streamlit UI, CLI, Tests, and Verification Steps
 # ============================================================================
 #
-# ⚠️  IMPORTANT: STRUCTURE CONFLICT NOTICE ⚠️
+# ✅ UPDATED TO CANONICAL STRUCTURE (December 2024)
 # ============================================================================
-# This document uses an OLDER module structure (models/, vectorstore/).
-# The CANONICAL structure is defined in docs/CANONICAL-STRUCTURE.yaml.
+# This document uses the canonical module structure:
+#   - core/           (schemas, exceptions)
+#   - services/       (embeddings, vector_store, document_service, llm_service)
+#   - tools/search.py (not search_tools.py)
 #
-# When implementing, use these mappings:
-#   OLD (this doc)              →  NEW (canonical)
-#   ─────────────────────────────────────────────
-#   models/schemas.py           →  core/schemas.py
-#   vectorstore/embeddings.py   →  services/embeddings.py
-#   vectorstore/store.py        →  services/vector_store.py
-#   tools/search_tools.py       →  tools/search.py
-#
-# The code examples in this document are still valid - just use the canonical
-# file paths from CANONICAL-STRUCTURE.yaml when creating files.
+# See docs/CANONICAL-STRUCTURE.yaml for the authoritative reference.
 # ============================================================================
 
 metadata:
@@ -47,7 +40,7 @@ file_implementations:
 
       from research_assistant.config.settings import settings
       from research_assistant.services.document_service import get_document_service
-      from research_assistant.vectorstore.store import get_vector_store
+      from research_assistant.services.vector_store import get_vector_store
       from research_assistant.graph.workflow import get_research_workflow
 
       # Configure logging
@@ -271,7 +264,7 @@ file_implementations:
 
       from research_assistant.config.settings import settings
       from research_assistant.services.document_service import get_document_service
-      from research_assistant.vectorstore.store import get_vector_store
+      from research_assistant.services.vector_store import get_vector_store
       from research_assistant.graph.workflow import get_research_workflow
 
       console = Console()
@@ -520,7 +513,7 @@ file_implementations:
   # --------------------------------------------------------------------------
   # FILE 24: Models Package Init
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/models/__init__.py"
+  - file: "src/research_assistant/core/__init__.py"
     description: "Models package exports"
     content: |
       """Models package."""
@@ -550,7 +543,7 @@ file_implementations:
   # --------------------------------------------------------------------------
   # FILE 25: Vectorstore Package Init
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/vectorstore/__init__.py"
+  - file: "src/research_assistant/services/__init__.py"
     description: "Vectorstore package exports"
     content: |
       """Vectorstore package."""
@@ -599,7 +592,7 @@ file_implementations:
     content: |
       """Tools package."""
 
-      from research_assistant.tools.search_tools import (
+      from research_assistant.tools.search import (
           search_documents,
           format_documents_for_context,
           search_and_format,
@@ -952,12 +945,12 @@ execution_guide:
       - "config/settings.py"
       - "config/prompts.py"
       - "exceptions.py"
-      - "models/schemas.py"
-      - "vectorstore/embeddings.py"
-      - "vectorstore/store.py"
+      - "core/schemas.py"
+      - "services/embeddings.py"
+      - "services/vector_store.py"
       - "services/document_service.py"
       - "services/llm_service.py"
-      - "tools/search_tools.py"
+      - "tools/search.py"
       - "agents/base.py"
       - "agents/researcher.py"
       - "agents/writer.py"

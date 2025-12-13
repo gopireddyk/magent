@@ -9,21 +9,14 @@
 #                   No interpretation required. Copy-paste ready.
 # ============================================================================
 #
-# ⚠️  IMPORTANT: STRUCTURE CONFLICT NOTICE ⚠️
+# ✅ UPDATED TO CANONICAL STRUCTURE (December 2024)
 # ============================================================================
-# This document uses an OLDER module structure (models/, vectorstore/).
-# The CANONICAL structure is defined in docs/CANONICAL-STRUCTURE.yaml.
+# This document has been updated to use the canonical module structure:
+#   - core/           (schemas, exceptions)
+#   - services/       (embeddings, vector_store, document_service, llm_service)
+#   - tools/search.py (not search_tools.py)
 #
-# When implementing, use these mappings:
-#   OLD (this doc)              →  NEW (canonical)
-#   ─────────────────────────────────────────────
-#   models/schemas.py           →  core/schemas.py
-#   vectorstore/embeddings.py   →  services/embeddings.py
-#   vectorstore/store.py        →  services/vector_store.py
-#   tools/search_tools.py       →  tools/search.py
-#
-# The code examples in this document are still valid - just use the canonical
-# file paths from CANONICAL-STRUCTURE.yaml when creating files.
+# See docs/CANONICAL-STRUCTURE.yaml for the authoritative reference.
 # ============================================================================
 
 metadata:
@@ -60,13 +53,13 @@ implementation_principles:
       - "src/research_assistant/__init__.py"
       - "src/research_assistant/config/settings.py"
       - "src/research_assistant/config/prompts.py"
-      - "src/research_assistant/exceptions.py"
-      - "src/research_assistant/models/schemas.py"
-      - "src/research_assistant/vectorstore/embeddings.py"
-      - "src/research_assistant/vectorstore/store.py"
+      - "src/research_assistant/core/exceptions.py"
+      - "src/research_assistant/core/schemas.py"
+      - "src/research_assistant/services/embeddings.py"
+      - "src/research_assistant/services/vector_store.py"
       - "src/research_assistant/services/document_service.py"
       - "src/research_assistant/services/llm_service.py"
-      - "src/research_assistant/tools/search_tools.py"
+      - "src/research_assistant/tools/search.py"
       - "src/research_assistant/agents/base.py"
       - "src/research_assistant/agents/researcher.py"
       - "src/research_assistant/agents/writer.py"
@@ -86,13 +79,12 @@ directory_structure:
 
   commands:
     bash: |
-      mkdir -p src/research_assistant/{config,models,vectorstore,services,tools,agents,graph,ui}
+      mkdir -p src/research_assistant/{config,core,services,tools,agents,graph,ui/pages}
       mkdir -p tests/{unit,integration,fixtures}
       mkdir -p data/{documents,vectorstore}
       touch src/research_assistant/__init__.py
       touch src/research_assistant/config/__init__.py
-      touch src/research_assistant/models/__init__.py
-      touch src/research_assistant/vectorstore/__init__.py
+      touch src/research_assistant/core/__init__.py
       touch src/research_assistant/services/__init__.py
       touch src/research_assistant/tools/__init__.py
       touch src/research_assistant/agents/__init__.py
@@ -103,24 +95,26 @@ directory_structure:
     src/
     └── research_assistant/
         ├── __init__.py
+        ├── py.typed
+        ├── cli.py
         ├── config/
         │   ├── __init__.py
         │   ├── settings.py
         │   └── prompts.py
-        ├── models/
+        ├── core/
         │   ├── __init__.py
+        │   ├── exceptions.py
         │   └── schemas.py
-        ├── vectorstore/
-        │   ├── __init__.py
-        │   ├── embeddings.py
-        │   └── store.py
         ├── services/
         │   ├── __init__.py
+        │   ├── embeddings.py
+        │   ├── vector_store.py
         │   ├── document_service.py
         │   └── llm_service.py
         ├── tools/
         │   ├── __init__.py
-        │   └── search_tools.py
+        │   ├── search.py
+        │   └── document.py
         ├── agents/
         │   ├── __init__.py
         │   ├── base.py
@@ -133,11 +127,14 @@ directory_structure:
         │   ├── state.py
         │   ├── nodes.py
         │   └── workflow.py
-        ├── ui/
-        │   ├── __init__.py
-        │   └── app.py
-        ├── exceptions.py
-        └── cli.py
+        └── ui/
+            ├── __init__.py
+            ├── app.py
+            ├── components.py
+            └── pages/
+                ├── 1_Chat.py
+                ├── 2_Documents.py
+                └── 3_Settings.py
 
 # ============================================================================
 # SECTION 3: COMPLETE FILE IMPLEMENTATIONS
@@ -563,7 +560,7 @@ file_implementations:
   # --------------------------------------------------------------------------
   # FILE 5: Data Schemas/Models
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/models/schemas.py"
+  - file: "src/research_assistant/core/schemas.py"
     description: "Pydantic models for data structures"
     content: |
       """Data models and schemas."""
@@ -648,13 +645,13 @@ file_implementations:
           documents_loaded: list[str] = Field(default_factory=list)
 
     verification:
-      command: "python -c \"from research_assistant.models.schemas import DocumentChunk, RetrievedDocument; print('OK')\""
+      command: "python -c \"from research_assistant.core.schemas import DocumentChunk, RetrievedDocument; print('OK')\""
       expected_output: "OK"
 
   # --------------------------------------------------------------------------
   # FILE 6: Embeddings Service
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/vectorstore/embeddings.py"
+  - file: "src/research_assistant/services/embeddings.py"
     description: "Embedding model wrapper"
     dependencies:
       - "sentence-transformers>=2.2.0"
@@ -755,13 +752,13 @@ file_implementations:
           return EmbeddingService()
 
     verification:
-      command: "python -c \"from research_assistant.vectorstore.embeddings import EmbeddingService; print('OK')\""
+      command: "python -c \"from research_assistant.services.embeddings import EmbeddingService; print('OK')\""
       expected_output: "OK"
 
   # --------------------------------------------------------------------------
   # FILE 7: Vector Store
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/vectorstore/store.py"
+  - file: "src/research_assistant/services/vector_store.py"
     description: "ChromaDB vector store wrapper"
     dependencies:
       - "chromadb>=0.4.0"
@@ -776,8 +773,8 @@ file_implementations:
 
       from research_assistant.config.settings import settings
       from research_assistant.exceptions import VectorStoreError
-      from research_assistant.models.schemas import DocumentChunk, RetrievedDocument
-      from research_assistant.vectorstore.embeddings import get_embedding_service
+      from research_assistant.core.schemas import DocumentChunk, RetrievedDocument
+      from research_assistant.services.embeddings import get_embedding_service
 
       logger = logging.getLogger(__name__)
 
@@ -1004,7 +1001,7 @@ file_implementations:
           return _vector_store
 
     verification:
-      command: "python -c \"from research_assistant.vectorstore.store import VectorStore; print('OK')\""
+      command: "python -c \"from research_assistant.services.vector_store import VectorStore; print('OK')\""
       expected_output: "OK"
 
   # --------------------------------------------------------------------------
@@ -1028,8 +1025,8 @@ file_implementations:
 
       from research_assistant.config.settings import settings
       from research_assistant.exceptions import DocumentProcessingError
-      from research_assistant.models.schemas import DocumentChunk, DocumentMetadata
-      from research_assistant.vectorstore.store import get_vector_store
+      from research_assistant.core.schemas import DocumentChunk, DocumentMetadata
+      from research_assistant.services.vector_store import get_vector_store
 
       logger = logging.getLogger(__name__)
 
@@ -1453,7 +1450,7 @@ file_implementations:
   # --------------------------------------------------------------------------
   # FILE 10: Search Tools
   # --------------------------------------------------------------------------
-  - file: "src/research_assistant/tools/search_tools.py"
+  - file: "src/research_assistant/tools/search.py"
     description: "Search tools for agents"
     content: |
       """Search tools for agents to use."""
@@ -1461,8 +1458,8 @@ file_implementations:
       import logging
       from typing import Optional
 
-      from research_assistant.vectorstore.store import get_vector_store
-      from research_assistant.models.schemas import RetrievedDocument
+      from research_assistant.services.vector_store import get_vector_store
+      from research_assistant.core.schemas import RetrievedDocument
       from research_assistant.config.settings import settings
 
       logger = logging.getLogger(__name__)
@@ -1545,7 +1542,7 @@ file_implementations:
           return formatted, documents
 
     verification:
-      command: "python -c \"from research_assistant.tools.search_tools import search_documents; print('OK')\""
+      command: "python -c \"from research_assistant.tools.search import search_documents; print('OK')\""
       expected_output: "OK"
 
 # ============================================================================

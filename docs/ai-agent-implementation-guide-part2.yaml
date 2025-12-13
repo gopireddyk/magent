@@ -4,21 +4,14 @@
 # Contains: Agent Implementations (Base, Researcher, Writer, Critic, Supervisor)
 # ============================================================================
 #
-# ⚠️  IMPORTANT: STRUCTURE CONFLICT NOTICE ⚠️
+# ✅ UPDATED TO CANONICAL STRUCTURE (December 2024)
 # ============================================================================
-# This document uses an OLDER module structure (models/, vectorstore/).
-# The CANONICAL structure is defined in docs/CANONICAL-STRUCTURE.yaml.
+# This document uses the canonical module structure:
+#   - core/           (schemas, exceptions)
+#   - services/       (embeddings, vector_store, document_service, llm_service)
+#   - tools/search.py (not search_tools.py)
 #
-# When implementing, use these mappings:
-#   OLD (this doc)              →  NEW (canonical)
-#   ─────────────────────────────────────────────
-#   models/schemas.py           →  core/schemas.py
-#   vectorstore/embeddings.py   →  services/embeddings.py
-#   vectorstore/store.py        →  services/vector_store.py
-#   tools/search_tools.py       →  tools/search.py
-#
-# The code examples in this document are still valid - just use the canonical
-# file paths from CANONICAL-STRUCTURE.yaml when creating files.
+# See docs/CANONICAL-STRUCTURE.yaml for the authoritative reference.
 # ============================================================================
 
 metadata:
@@ -121,8 +114,8 @@ file_implementations:
           RESEARCHER_SYSTEM_PROMPT,
           RESEARCHER_TASK_PROMPT,
       )
-      from research_assistant.tools.search_tools import search_and_format
-      from research_assistant.models.schemas import RetrievedDocument
+      from research_assistant.tools.search import search_and_format
+      from research_assistant.core.schemas import RetrievedDocument
 
       logger = logging.getLogger(__name__)
 
