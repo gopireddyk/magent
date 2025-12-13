@@ -9,11 +9,13 @@ metadata:
 
 namespace: research-assistant
 
-# Common labels applied to all resources
-commonLabels:
-  app.kubernetes.io/name: research-assistant
-  app.kubernetes.io/version: "1.0.0"
-  app.kubernetes.io/managed-by: kustomize
+# Common labels applied to all resources (using 'labels' instead of deprecated 'commonLabels')
+labels:
+  - pairs:
+      app.kubernetes.io/name: research-assistant
+      app.kubernetes.io/version: "1.0.0"
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
 
 # Resources to include
 resources:

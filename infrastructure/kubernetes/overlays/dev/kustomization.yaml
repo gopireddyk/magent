@@ -11,9 +11,11 @@ metadata:
 resources:
   - ../../base
 
-# Development-specific labels
-commonLabels:
-  environment: development
+# Development-specific labels (using 'labels' instead of deprecated 'commonLabels')
+labels:
+  - pairs:
+      environment: development
+    includeSelectors: false
 
 # Development-specific patches
 patches:
@@ -64,14 +66,16 @@ patches:
                     cpu: "2000m"
                     memory: "8Gi"
 
-# ConfigMap overrides for development
-configMapGenerator:
-  - name: research-assistant-config
-    behavior: merge
-    literals:
-      - RESEARCH_LOG_LEVEL=DEBUG
-      - RESEARCH_DEBUG=true
-      - RESEARCH_ENVIRONMENT=development
+  # Override config for development
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: research-assistant-config
+      data:
+        RESEARCH_LOG_LEVEL: "DEBUG"
+        RESEARCH_DEBUG: "true"
+        RESEARCH_ENVIRONMENT: "development"
 
 # Image configuration for development
 images:

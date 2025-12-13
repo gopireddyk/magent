@@ -19,8 +19,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git \
     && rm -rf /var/lib/apt/lists/*
 
-WORKDIR /app
-
 # Create virtual environment
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
@@ -28,13 +26,15 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
+# Set working directory for builder
+WORKDIR /build
+
 # Copy project files needed for installation
 COPY pyproject.toml README.md ./
 COPY src/ ./src/
-COPY tests/ ./tests/
 
-# Install production dependencies into venv
-RUN pip install --no-cache-dir -e .
+# Install production dependencies into venv (not editable for multi-stage builds)
+RUN pip install --no-cache-dir .
 
 # ============================================================================
 # STAGE 2: Production
@@ -69,9 +69,11 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Set working directory
 WORKDIR /app
 
-# Copy application code and tests (tests required for in-cluster test runs)
+# Copy application code
 COPY --chown=appuser:appgroup src/ ./src/
-COPY --chown=appuser:appgroup tests/ ./tests/
+
+# Copy .streamlit config
+COPY --chown=appuser:appgroup .streamlit/ ./.streamlit/
 
 # Create data directories
 RUN mkdir -p /app/data/documents /app/data/vectorstore && \

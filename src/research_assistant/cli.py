@@ -106,5 +106,35 @@ def main():
     args.func(args)
 
 
+def ingest():
+    """Standalone ingest entry point for ra-ingest command."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog="ra-ingest",
+        description="Ingest documents into the vector store",
+    )
+    parser.add_argument("--dir", "-d", help="Directory containing documents")
+    args = parser.parse_args()
+    cmd_ingest(args)
+
+
+def query():
+    """Standalone query entry point for ra-query command."""
+    import argparse
+    parser = argparse.ArgumentParser(
+        prog="ra-query",
+        description="Query the research assistant",
+    )
+    parser.add_argument("query", help="The question to ask")
+    parser.add_argument(
+        "--show-sources",
+        "-s",
+        action="store_true",
+        help="Show source documents",
+    )
+    args = parser.parse_args()
+    cmd_query(args)
+
+
 if __name__ == "__main__":
     main()

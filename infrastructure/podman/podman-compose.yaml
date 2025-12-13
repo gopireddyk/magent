@@ -12,10 +12,7 @@ services:
   # Main Application - Research Assistant
   # ==========================================================================
   research-app:
-    build:
-      context: ../..
-      dockerfile: infrastructure/podman/Containerfile
-    image: localhost/research-assistant:latest
+    image: localhost/student-research-assistant:latest
     container_name: research-assistant-app
 
     ports:

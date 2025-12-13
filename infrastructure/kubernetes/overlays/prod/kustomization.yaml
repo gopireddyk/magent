@@ -9,10 +9,13 @@ resources:
 
 namePrefix: prod-
 
-commonLabels:
-  environment: production
-  app.kubernetes.io/part-of: research-assistant
-  app.kubernetes.io/managed-by: kustomize
+# Production-specific labels (using 'labels' instead of deprecated 'commonLabels')
+labels:
+  - pairs:
+      environment: production
+      app.kubernetes.io/part-of: research-assistant
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
 
 # Production-specific patches
 patches:
@@ -43,12 +46,14 @@ patches:
       kind: Deployment
       name: research-assistant-app
 
-# Production ConfigMap overrides
-configMapGenerator:
-  - name: research-assistant-config
-    behavior: merge
-    literals:
-      - RESEARCH_LOG_LEVEL=INFO
-      - RESEARCH_DEBUG=false
-      - RESEARCH_ENVIRONMENT=production
-      - RESEARCH_LOG_JSON=true
+  # Override config for production
+  - patch: |-
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: research-assistant-config
+      data:
+        RESEARCH_LOG_LEVEL: "INFO"
+        RESEARCH_DEBUG: "false"
+        RESEARCH_ENVIRONMENT: "production"
+        RESEARCH_LOG_JSON: "true"
