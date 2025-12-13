@@ -228,6 +228,38 @@ python_packages:
     maximum: "3.12"
     verification: "python --version"
 
+  # ---------------------------------------------------------------------------
+  # VERSION PINNING STRATEGY
+  # ---------------------------------------------------------------------------
+  # IMPORTANT: This section clarifies the versioning approach used in this project.
+  # ---------------------------------------------------------------------------
+  version_pinning_strategy:
+    description: |
+      This project uses LOWER BOUNDS (>=X.Y.Z) in pyproject.toml for flexibility,
+      while documentation shows RECOMMENDED RANGES for reference.
+
+    pyproject_toml_approach:
+      style: "Lower bounds only (>=X.Y.Z)"
+      reason: "Allows pip to resolve compatible versions while ensuring minimum features"
+      example: 'langchain>=0.3.0'
+
+    documentation_approach:
+      style: "Ranges shown for reference (>=X.Y.Z,<Y.0.0)"
+      reason: "Indicates tested compatibility range"
+      example: 'langchain: ">=0.3.0,<0.4.0" (tested with 0.3.x series)'
+
+    reconciliation:
+      - "pyproject.toml is the SOURCE OF TRUTH for actual installations"
+      - "Doc ranges are INFORMATIONAL - showing what versions were tested"
+      - "If you hit issues, pin to the doc-recommended ranges in requirements.txt"
+      - "For reproducible builds, use: pip freeze > requirements.lock"
+
+    lock_file_recommendation: |
+      For production deployments, generate a lock file:
+        pip install -e '.[dev]'
+        pip freeze > requirements.lock
+      Then install from lock: pip install -r requirements.lock
+
   installation_methods:
     recommended:
       method: "pip with pyproject.toml"
@@ -309,6 +341,13 @@ python_packages:
         pypi: "https://pypi.org/project/unstructured/"
         optional: true
         note: "Large package with many dependencies"
+
+      - package: "reportlab"
+        version: ">=4.0.0"
+        description: "PDF generation (for creating test documents)"
+        pypi: "https://pypi.org/project/reportlab/"
+        optional: true
+        note: "Only needed for scripts/seed_data.py to generate sample PDFs"
 
     user_interface:
       - package: "streamlit"
@@ -456,13 +495,34 @@ system_tools:
     podman:
       name: "Podman"
       version: ">=4.0"
-      description: "Container runtime (Docker alternative)"
+      description: "Container runtime (Docker alternative, rootless)"
       installation:
         macos: "brew install podman"
         linux: "sudo apt-get install podman"
         windows: "winget install RedHat.Podman"
       verification: "podman --version"
       documentation: "https://podman.io/docs"
+
+    podman_compose:
+      name: "podman-compose"
+      version: ">=1.0.6"
+      description: "Docker Compose compatible orchestration for Podman"
+      installation:
+        all: "pip install podman-compose"
+        alternative: "brew install podman-compose"
+      verification: "podman-compose --version"
+      documentation: "https://github.com/containers/podman-compose"
+      note: "Required for 'make podman-compose-up' target"
+
+    docker_compose:
+      name: "docker-compose (alternative)"
+      version: ">=2.20"
+      description: "Alternative to podman-compose if using Docker"
+      installation:
+        macos: "brew install docker-compose"
+        linux: "sudo apt-get install docker-compose-plugin"
+      verification: "docker compose version"
+      note: "Use this if you prefer Docker over Podman"
 
     multipass:
       name: "Multipass"
@@ -484,6 +544,42 @@ system_tools:
         linux: "sudo snap install kubectl --classic"
         windows: "winget install Kubernetes.kubectl"
       verification: "kubectl version --client"
+
+    kustomize:
+      name: "Kustomize"
+      version: ">=5.0"
+      description: "Kubernetes configuration management (used by K8s overlays)"
+      installation:
+        macos: "brew install kustomize"
+        linux: |
+          curl -s "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh" | bash
+          sudo mv kustomize /usr/local/bin/
+        alternative: "Built into kubectl (kubectl kustomize)"
+      verification: "kustomize version"
+      documentation: "https://kustomize.io/"
+      note: "Required for K8s overlay deployment (dev/prod environments)"
+
+    terraform:
+      name: "Terraform"
+      version: ">=1.5.0"
+      description: "Infrastructure as Code tool"
+      installation:
+        macos: "brew install terraform"
+        linux: |
+          wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+          sudo apt update && sudo apt install terraform
+        windows: "choco install terraform"
+      verification: "terraform --version"
+      documentation: "https://www.terraform.io/docs"
+      providers_required:
+        - name: "hashicorp/kubernetes"
+          version: ">=2.23.0"
+          purpose: "Kubernetes resource management"
+        - name: "hashicorp/helm"
+          version: ">=2.11.0"
+          purpose: "Helm chart deployment (optional)"
+      note: "Required only if using infrastructure/terraform/ for deployment"
 
     helm:
       name: "Helm"
@@ -702,17 +798,315 @@ hardware_requirements:
       ollama_setup: "Ollama auto-detects NVIDIA GPUs"
       verification: "nvidia-smi"
 
+      cuda_installation:
+        description: "Full CUDA toolkit installation (optional, for advanced users)"
+        linux_ubuntu:
+          - "# Option 1: Using apt (recommended)"
+          - "sudo apt update"
+          - "sudo apt install nvidia-cuda-toolkit"
+          - ""
+          - "# Option 2: From NVIDIA (latest version)"
+          - "# Visit: https://developer.nvidia.com/cuda-downloads"
+          - "# Select: Linux > x86_64 > Ubuntu > 22.04 > deb (network)"
+          - "wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/cuda-keyring_1.1-1_all.deb"
+          - "sudo dpkg -i cuda-keyring_1.1-1_all.deb"
+          - "sudo apt-get update"
+          - "sudo apt-get install cuda-toolkit-12-3"
+        windows:
+          - "# Download from: https://developer.nvidia.com/cuda-downloads"
+          - "# Run installer, select 'Custom' and include driver if needed"
+        macos:
+          note: "CUDA not supported on macOS since 10.14, use Metal instead"
+
+      driver_verification:
+        commands:
+          - "nvidia-smi                    # Check driver version and GPU info"
+          - "nvcc --version                # Check CUDA compiler version"
+          - "python -c \"import torch; print(torch.cuda.is_available())\"  # PyTorch GPU check"
+
+      environment_variables:
+        - name: "CUDA_VISIBLE_DEVICES"
+          description: "Control which GPUs are visible (e.g., '0' for first GPU)"
+          example: "export CUDA_VISIBLE_DEVICES=0"
+        - name: "CUDA_HOME"
+          description: "Path to CUDA installation"
+          default_linux: "/usr/local/cuda"
+          default_windows: "C:\\Program Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v12.3"
+
+      troubleshooting:
+        - issue: "nvidia-smi not found"
+          solution: "Install NVIDIA drivers: sudo apt install nvidia-driver-535"
+        - issue: "CUDA version mismatch"
+          solution: "Ensure driver version supports CUDA version (check compatibility matrix)"
+        - issue: "Out of GPU memory"
+          solution: "Use smaller model or set CUDA_VISIBLE_DEVICES to limit GPU"
+
     apple_silicon:
       requirement: "macOS 12+ on M1/M2/M3"
       ollama_setup: "Ollama auto-uses Metal acceleration"
       verification: "system_profiler SPDisplaysDataType"
 
+      metal_support:
+        description: "Apple's Metal API provides GPU acceleration on Apple Silicon"
+        enabled_by_default: true
+        performance_notes:
+          - "M1: Good for 7B models, adequate for 13B"
+          - "M2/M3: Excellent for 7B-13B models"
+          - "M2/M3 Max/Ultra: Can handle 30B+ models"
+        memory_consideration: |
+          Apple Silicon uses unified memory - the model shares RAM with system.
+          Ensure you have enough RAM:
+            - 7B models: 8GB RAM minimum
+            - 13B models: 16GB RAM minimum
+            - 30B models: 32GB+ RAM
+
+    amd_rocm:
+      description: "AMD GPU support via ROCm (experimental)"
+      requirement: "ROCm 5.6+ on supported AMD GPUs"
+      installation:
+        linux: |
+          # Check supported GPUs: https://rocm.docs.amd.com/
+          sudo apt install rocm-hip-runtime
+      ollama_setup: "Ollama has experimental ROCm support"
+      verification: "rocm-smi"
+      note: "AMD GPU support is less mature than NVIDIA"
+
     cpu_only:
       note: "Application works without GPU, just slower"
       recommended_model: "llama3.2:1b for faster inference"
+      performance_tips:
+        - "Use smaller models (1B-3B parameters)"
+        - "Reduce max_tokens for faster responses"
+        - "Consider using quantized models (e.g., Q4_0)"
+        - "Ensure sufficient RAM (16GB+ recommended)"
 
 # ============================================================================
-# 10. VERIFICATION CHECKLIST
+# 10. DOCUMENT INGESTION WORKFLOW
+# ============================================================================
+document_ingestion:
+  description: |
+    How to get research documents into the system and where they are stored.
+    This is a critical workflow for using the Research Assistant.
+
+  # ---------------------------------------------------------------------------
+  # WHERE TO PLACE DOCUMENTS
+  # ---------------------------------------------------------------------------
+  document_storage:
+    input_directory:
+      path: "data/documents/"
+      description: "Place your PDF, TXT, MD files here for ingestion"
+      gitignored: true
+      configurable_via:
+        env_variable: "RESEARCH_UPLOAD_DIR"
+        default: "./data/documents"
+
+    vector_store_directory:
+      path: "data/vectorstore/"
+      description: "ChromaDB persistent storage (auto-created)"
+      gitignored: true
+      configurable_via:
+        env_variable: "RESEARCH_CHROMA_PERSIST_DIR"
+        default: "./data/vectorstore"
+      note: "Keep this directory to persist embeddings across runs"
+
+    supported_formats:
+      - extension: ".pdf"
+        description: "PDF documents (most common)"
+        library: "pypdf"
+      - extension: ".txt"
+        description: "Plain text files"
+        library: "built-in"
+      - extension: ".md"
+        description: "Markdown files"
+        library: "built-in"
+      - extension: ".docx"
+        description: "Word documents (optional)"
+        library: "python-docx"
+        note: "Requires optional dependency"
+
+  # ---------------------------------------------------------------------------
+  # INGESTION METHODS
+  # ---------------------------------------------------------------------------
+  ingestion_methods:
+    streamlit_ui:
+      description: "Upload via web interface"
+      steps:
+        - "Start the app: make run"
+        - "Open http://localhost:8501"
+        - "Use the sidebar file uploader"
+        - "Select PDF/TXT/MD files"
+        - "Click 'Process Documents'"
+      best_for: "Interactive use, small batches"
+
+    cli_ingest:
+      description: "Batch ingest from command line"
+      command: "make ingest"
+      equivalent: "python -m research_assistant.cli ingest --dir data/documents"
+      options:
+        - flag: "--dir"
+          description: "Directory containing documents"
+          default: "data/documents"
+        - flag: "--recursive"
+          description: "Process subdirectories"
+          default: "false"
+        - flag: "--chunk-size"
+          description: "Text chunk size for splitting"
+          default: "1000"
+        - flag: "--chunk-overlap"
+          description: "Overlap between chunks"
+          default: "200"
+      best_for: "Batch processing, automation"
+
+    manual_copy:
+      description: "Simply copy files to data/documents/"
+      steps:
+        - "Copy your PDF/TXT files to data/documents/"
+        - "Run: make ingest"
+        - "Or use the Streamlit UI to trigger processing"
+      best_for: "Bulk document loading"
+
+  # ---------------------------------------------------------------------------
+  # SEED DATA / SAMPLE DOCUMENTS
+  # ---------------------------------------------------------------------------
+  seed_data:
+    description: "Quick ways to get sample documents for testing"
+
+    use_seed_script:
+      command: "python scripts/seed_data.py"
+      description: "Creates 3 sample TXT documents in data/documents/"
+      documents_created:
+        - "machine_learning_intro.txt"
+        - "research_methodology.txt"
+        - "academic_writing_tips.txt"
+      note: "Simple text files, no external dependencies"
+
+    create_sample_pdf:
+      description: "Create a test PDF document"
+      requires: "pip install reportlab"
+      command: |
+        python -c "
+        from reportlab.lib.pagesizes import letter
+        from reportlab.pdfgen import canvas
+
+        c = canvas.Canvas('data/documents/test_document.pdf', pagesize=letter)
+        c.drawString(100, 750, 'Test Document for Research Assistant')
+        c.drawString(100, 700, 'This is a sample paragraph about machine learning.')
+        c.drawString(100, 650, 'Machine learning is a subset of artificial intelligence.')
+        c.drawString(100, 600, 'It enables computers to learn from data.')
+        c.save()
+        print('Test document created!')
+        "
+
+    download_sample_papers:
+      description: "Download free academic papers"
+      sources:
+        - name: "arXiv"
+          url: "https://arxiv.org/"
+          suggestion: "Search for papers on your topic, download PDFs"
+        - name: "Project Gutenberg"
+          url: "https://www.gutenberg.org/"
+          suggestion: "Download public domain books as text/PDF"
+        - name: "Google Scholar"
+          url: "https://scholar.google.com/"
+          suggestion: "Find open-access papers"
+
+  # ---------------------------------------------------------------------------
+  # POST-INGESTION
+  # ---------------------------------------------------------------------------
+  post_ingestion:
+    what_happens:
+      - "Documents are read and text extracted"
+      - "Text is split into chunks (default: 1000 chars, 200 overlap)"
+      - "Each chunk is embedded using the embedding model"
+      - "Embeddings stored in ChromaDB at data/vectorstore/"
+      - "Documents are ready for semantic search"
+
+    verification:
+      check_document_count: |
+        # In Python or CLI
+        python -c "
+        import chromadb
+        client = chromadb.PersistentClient(path='./data/vectorstore')
+        collection = client.get_collection('research_documents')
+        print(f'Documents indexed: {collection.count()}')
+        "
+
+    reingestion:
+      description: "To reindex documents, delete vectorstore and reingest"
+      commands:
+        - "rm -rf data/vectorstore/*"
+        - "make ingest"
+      note: "This clears all embeddings and reprocesses all documents"
+
+  # ---------------------------------------------------------------------------
+  # QUERYING
+  # ---------------------------------------------------------------------------
+  querying:
+    streamlit_ui:
+      description: "Use the chat interface"
+      steps:
+        - "Navigate to Chat page"
+        - "Type your research question"
+        - "View AI response with citations"
+
+    cli_query:
+      command: "python -m research_assistant.cli query 'your question here'"
+      options:
+        - flag: "--top-k"
+          description: "Number of similar documents to retrieve"
+          default: "5"
+        - flag: "--output"
+          description: "Output format (text, json)"
+          default: "text"
+
+    sample_queries:
+      - "What is the main topic of the uploaded documents?"
+      - "Summarize the key findings mentioned in the papers."
+      - "What methodology was used in the research?"
+      - "Are there any conflicting viewpoints in the documents?"
+
+  # ---------------------------------------------------------------------------
+  # PODMAN VS DOCKER COMPOSE GUIDANCE
+  # ---------------------------------------------------------------------------
+  container_deployment:
+    podman_compose:
+      description: "Rootless container deployment (recommended)"
+      advantages:
+        - "No root/daemon required"
+        - "Better security model"
+        - "Drop-in Docker Compose replacement"
+      commands:
+        build: "make podman-build"
+        up: "make podman-compose-up"
+        down: "podman-compose -f infrastructure/podman/podman-compose.yaml down"
+        logs: "podman-compose -f infrastructure/podman/podman-compose.yaml logs -f"
+
+    docker_compose:
+      description: "Traditional Docker deployment (alternative)"
+      advantages:
+        - "More mature tooling"
+        - "Wider community support"
+        - "Better IDE integration"
+      commands:
+        build: "docker build -t research-assistant -f infrastructure/docker/Dockerfile ."
+        up: "docker compose -f infrastructure/docker/docker-compose.yaml up -d"
+        down: "docker compose -f infrastructure/docker/docker-compose.yaml down"
+        logs: "docker compose -f infrastructure/docker/docker-compose.yaml logs -f"
+
+    choosing:
+      use_podman_if:
+        - "You want rootless containers"
+        - "You're on Linux and prefer no daemon"
+        - "Security is a priority"
+      use_docker_if:
+        - "You already have Docker installed"
+        - "You need Docker-specific features"
+        - "Your team uses Docker"
+
+# ============================================================================
+# 11. VERIFICATION CHECKLIST
+# ============================================================================
+# NOTE: Renumbered from 10 to 11 due to adding Document Ingestion section
 # ============================================================================
 verification_checklist:
 
@@ -774,7 +1168,7 @@ verification_checklist:
       expected: "Client Version: vX.X.X"
 
 # ============================================================================
-# 11. COMMON ISSUES & SOLUTIONS
+# 12. COMMON ISSUES & SOLUTIONS
 # ============================================================================
 common_issues:
 
@@ -830,7 +1224,7 @@ common_issues:
       - "Or use different port: streamlit run app.py --server.port 8502"
 
 # ============================================================================
-# 12. QUICK START COMMANDS
+# 13. QUICK START COMMANDS
 # ============================================================================
 quick_start:
 
